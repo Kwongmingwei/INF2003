@@ -1,0 +1,10 @@
+<div class="book-list">
+  {% for id, book in books.items() %}
+  <a href="/book/{{ id }}" class="book-card">
+    <h3>{{ book.title }}</h3>
+    <p>by {{ book.author }}</p>
+  </a>
+  {% else %}
+    <p>No books found.</p>
+  {% endfor %}
+</div>

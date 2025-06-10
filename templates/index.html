@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book Review</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+</head>
+<body>
+  <div class="container">
+
+    <div class="login-btn">
+      <button>Login</button>
+    </div>
+
+    <div class="sidebar">
+      <h3>GENRE</h3>
+      <div class="genre-button"><button>Adventure</button></div>
+      <div class="genre-button"><button>Romance</button></div>
+      <div class="genre-button"><button>History</button></div>
+    </div>
+
+    <div class="main-content">
+      <div class="search-container">
+        <div class="search-box">
+          <input type="text" name="query" placeholder="Search books...">
+          <select id="searchDropdown" name="searchDropdown">
+            <option value="title">Title</option>
+            <option value="author">Author</option>
+            <option value="isbn">ISBN</option>
+          </select>
+          <button
+            class="search-btn"
+            hx-get="/search"
+            hx-target=".book-list"
+            hx-swap="outerHTML"
+            hx-include="[name='query'], #searchDropdown">
+            Search
+          </button>
+        </div>
+      </div>
+
+      {% include 'partials/book_list.html' %}
+
+      <div id="book-detail" style="margin-top: 30px;"></div>
+    </div>
+  </div>
+</body>
+</html>
