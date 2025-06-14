@@ -18,10 +18,10 @@ def book_detail(book_id):
     book = books.get(book_id)
     if not book:
         return "Book not found", 404
-    if request.headers.get("Hx-Request") == "true":
+    if request.headers.get("HX-Request"):
         return render_template("partials/book_detail.html", book=book)
     return render_template("book_detail.html", book=book)
-
+'''
 @app.route('/search')
 def search():
     query = request.args.get("query", "").lower()
@@ -36,6 +36,33 @@ def search():
         }
 
     return render_template("partials/book_list.html", books=filtered)
+'''
+@app.route('/search')
+def search():
+    query = request.args.get("query", "").lower()
+    field = request.args.get("searchDropdown", "title")
+
+    if not query:
+        filtered = books
+    else:
+        filtered = {
+            id: book for id, book in books.items()
+            if query in book.get(field, "").lower()
+        }
+
+    if request.headers.get("HX-Request"):
+        return render_template("partials/book_list.html", books=filtered)
+    return render_template("index.html", books=filtered)
+
+@app.route('/genre/<genre>')
+def filter_by_genre(genre):
+    filtered = {
+        id: book for id, book in books.items()
+        if book['genre'].lower() == genre.lower()
+    }
+    if request.headers.get("HX-Request"):
+        return render_template("partials/book_list.html", books=filtered)
+    return render_template("index.html", books=filtered)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -15,9 +15,24 @@
 
     <div class="sidebar">
       <h3>GENRE</h3>
-      <div class="genre-button"><button>Adventure</button></div>
-      <div class="genre-button"><button>Romance</button></div>
-      <div class="genre-button"><button>History</button></div>
+      <div class="genre-button">
+        <button 
+          hx-get="/genre/Adventure"
+          hx-target=".book-list"
+          hx-swap="outerHTML">Adventure</button>
+      </div>
+      <div class="genre-button">
+        <button 
+          hx-get="/genre/Romance"
+          hx-target=".book-list"
+          hx-swap="outerHTML">Romance</button>
+      </div>
+      <div class="genre-button">
+        <button 
+          hx-get="/genre/History"
+          hx-target=".book-list"
+          hx-swap="outerHTML">History</button>
+      </div>
     </div>
 
     <div class="main-content">
