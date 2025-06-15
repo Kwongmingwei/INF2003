@@ -17,19 +17,26 @@
 
 
   <div class="review-section" style="margin-top: 30px;">
-    <h3>Reviews</h3>
-    {% if reviews %}
-      <ul>
-        {% for review in reviews %}
-          <li>
-            <strong>{{ review.user }}</strong> rated it {{ review.rating }}/5<br>
-            "{{ review.comment }}"
-          </li>
-        {% endfor %}
-      </ul>
+    {% if session.get('username') %}
+      <h3>Leave a Review</h3>
+      <form method="POST" action="{{ url_for('submit_review', book_id=book_id) }}">
+        <textarea name="comment" placeholder="Write your review..." required></textarea><br>
+        <input type="number" name="rating" min="1" max="5" required>
+        <button type="submit">Submit Review</button>
+      </form>
+    {% else %}
+      <p><a href="{{ url_for('login') }}">Log in</a> to write a review.</p>
+    {% endif %}
+
+    <h3>Reviews:</h3>
+    {% for review in reviews %}
+      <div>
+        <p><strong>{{ review.user }}</strong> (Rating: {{ review.rating }}/5)</p>
+        <p>{{ review.comment }}</p>
+      </div>
     {% else %}
       <p>No reviews yet.</p>
-    {% endif %}
+    {% endfor %}
   </div>
 </body>
 </html>

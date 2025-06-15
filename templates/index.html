@@ -10,11 +10,21 @@
   <div class="container">
 
     <div class="login-btn">
-      <button>Login</button>
+      {% if session.get('username') %}
+        <p>Welcome, {{ session['username'] }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+      {% else %}
+        <a href="{{ url_for('login') }}"><button>Login</button></a>
+      {% endif %}
     </div>
 
     <div class="sidebar">
       <h3>GENRE</h3>
+      <div class="genre-button">
+          <button 
+            hx-get="/" 
+            hx-target=".book-list"
+            hx-swap="outerHTML">All Genres</button>
+      </div>
       <div class="genre-button">
         <button 
           hx-get="/genre/Adventure"
