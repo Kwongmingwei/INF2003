@@ -9,6 +9,20 @@ books = {
     3: {"title": "History of Nothing", "author": "Alice Example", "genre": "History", "isbn": "345-6789012345", "description": "A deep dive into forgotten times."}
 }
 
+reviews = {
+    1: [
+        {"user": "Alice", "rating": 5, "comment": "Amazing journey!"},
+        {"user": "Bob", "rating": 4, "comment": "Exciting and imaginative."}
+    ],
+    2: [
+        {"user": "Charlie", "rating": 3, "comment": "Interesting concept, but a bit dry."},
+        {"user": "Dana", "rating": 4, "comment": "Loved the emotional angle!"}
+    ],
+    3: [
+        {"user": "Eve", "rating": 2, "comment": "Too abstract for my taste."}
+    ]
+}
+
 @app.route('/')
 def index():
     return render_template('index.html', books=books)
@@ -16,11 +30,12 @@ def index():
 @app.route('/book/<int:book_id>')
 def book_detail(book_id):
     book = books.get(book_id)
+    book_reviews = reviews.get(book_id, [])
     if not book:
         return "Book not found", 404
-    if request.headers.get("HX-Request"):
-        return render_template("partials/book_detail.html", book=book)
-    return render_template("book_detail.html", book=book)
+    if request.headers.get("Hx-Request") == "true":
+        return render_template("partials/book_detail.html", book=book, reviews=book_reviews)
+    return render_template("book_detail.html", book=book, reviews=book_reviews)
 '''
 @app.route('/search')
 def search():
@@ -63,6 +78,9 @@ def filter_by_genre(genre):
     if request.headers.get("HX-Request"):
         return render_template("partials/book_list.html", books=filtered)
     return render_template("index.html", books=filtered)
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

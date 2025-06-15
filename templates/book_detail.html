@@ -14,5 +14,22 @@
     <p><strong>ISBN:</strong> {{ book.isbn }}</p>
     <p><strong>Description:</strong> {{ book.description }}</p>
   </div>
+
+
+  <div class="review-section" style="margin-top: 30px;">
+    <h3>Reviews</h3>
+    {% if reviews %}
+      <ul>
+        {% for review in reviews %}
+          <li>
+            <strong>{{ review.user }}</strong> rated it {{ review.rating }}/5<br>
+            "{{ review.comment }}"
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No reviews yet.</p>
+    {% endif %}
+  </div>
 </body>
 </html>
