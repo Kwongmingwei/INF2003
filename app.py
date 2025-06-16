@@ -1,6 +1,16 @@
 
-
+import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
+
+
+def get_db_connection():
+    return mysql.connector.connect(
+        host='localhost',
+        user='youruser',
+        password='yourpassword',
+        database='yourdatabase',
+        charset='utf8mb4'
+    )
 
 app = Flask(__name__)
 app.secret_key = 'KEY'
