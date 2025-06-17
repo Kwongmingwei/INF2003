@@ -1,36 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-  <div class="search-container">
-    <div class="search-box">
-      <input type="text" name="query" placeholder="Search books...">
-      <select id="searchDropdown" name="searchDropdown">
+  <div class="search-bar">
+    <form hx-get="/search" hx-target="#book-results" hx-push-url="true">
+      <input type="text" name="query" placeholder="Search...">
+      <select name="searchDropdown">
         <option value="title">Title</option>
         <option value="author">Author</option>
-        <option value="isbn13">ISBN</option>
       </select>
-      <button
-        class="search-btn"
-        hx-get="/search"
-        hx-target="#book-list"
-        hx-swap="outerHTML"
-        hx-include="[name='query'], #searchDropdown">
-        Search
-      </button>
-    </div>
+      <button type="submit">Search</button>
+    </form>
   </div>
 
-  <div class="sidebar">
-    <h3>GENRE</h3>
-    <div class="genre-button">
-        <button hx-get="/" hx-target="#book-list" hx-swap="outerHTML">All Genres</button>
-        <button hx-get="/genre/Adventure" hx-target="#book-list" hx-swap="outerHTML">Adventure</button>
-        <button hx-get="/genre/Romance" hx-target="#book-list" hx-swap="outerHTML">Romance</button>
-        <button hx-get="/genre/History" hx-target="#book-list" hx-swap="outerHTML">History</button>
-    </div>
-  </div>
-
-  <h1 class="text-2xl font-bold mb-4">Book Library</h1>
-  <div id="book-list">
+  <h1>BOOOKS</h1>
+  <div id="book-results">
     {% include "partials/book_list.html" %}
   </div>
 {% endblock %}

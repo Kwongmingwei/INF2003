@@ -8,17 +8,17 @@
 </head>
 <body>
   <div class="container">
-    <div class="login-btn">
+    <header class="top-bar">
       {% if session.get('username') %}
         <p>Welcome, {{ session['username'] }} | <a href="{{ url_for('logout') }}">Logout</a></p>
       {% else %}
-        <a href="{{ url_for('login') }}"><button>Login</button></a>
+        <a href="{{ url_for('login') }}" class="login-link">Login</a>
       {% endif %}
-    </div>
+    </header>
 
-    <div class="main-content">
+    <main class="main-content">
       {% block content %}{% endblock %}
-    </div>
+    </main>
   </div>
 </body>
 </html>

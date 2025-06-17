@@ -15,12 +15,15 @@ def get_db_connection():
 app = Flask(__name__)
 app.secret_key = 'KEY'
 
-# Dummy book data
+'''
 books = {
     1: {"title": "The Simulated Journey", "author": "Jane Doe", "genre": "Adventure", "isbn": "123-4567890123", "description": "An epic voyage into the unknown."},
     2: {"title": "Romantic Algorithms", "author": "John Smith", "genre": "Romance", "isbn": "234-5678901234", "description": "Love and logic intertwined."},
     3: {"title": "History of Nothing", "author": "Alice Example", "genre": "History", "isbn": "345-6789012345", "description": "A deep dive into forgotten times."}
 }
+'''
+# Dummy book data
+
 
 users = {
     "john": {"password": "1234"},
@@ -60,10 +63,7 @@ def fetch_books_from_db(query=None, field="title"):
     cursor = conn.cursor(dictionary=True)
 
     sql = """
-        SELECT 
-            bw.work_id, bw.title,
-            GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors,
-            GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        SELECT bw.work_id, bw.title, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
         FROM book_work bw
         LEFT JOIN author_work aw ON bw.work_id = aw.work_id_fk
         LEFT JOIN author a ON a.author_id = aw.author_id_fk
@@ -71,19 +71,26 @@ def fetch_books_from_db(query=None, field="title"):
         LEFT JOIN genre g ON g.genre_id = c.genre_id
     """
 
-    params = ()
+    conditions = []
+    params = []
+
     if query:
         if field == "title":
-            sql += " WHERE bw.title LIKE %s"
-            params = (f"%{query}%",)
+            conditions.append("bw.title LIKE %s")
+            params.append(f"%{query}%")
         elif field == "author":
-            sql += " WHERE a.name LIKE %s"
-            params = (f"%{query}%",)
-        else:
-            sql += ""
-            params = ()
+            conditions.append("a.name LIKE %s")
+            params.append(f"%{query}%")
 
-    sql += " GROUP BY bw.work_id"
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+
+    sql += " GROUP BY bw.work_id LIMIT 1000"
+
+    '''
+    if not query:
+            sql += " LIMIT 1000"
+    '''
 
     cursor.execute(sql, params)
     books = cursor.fetchall()
@@ -97,10 +104,7 @@ def fetch_book_details(work_id):
     cursor = conn.cursor(dictionary=True)
     
     cursor.execute("""
-        SELECT 
-            bw.title, bw.description,
-            GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors,
-            GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        SELECT bw.title, bw.description, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
         FROM book_work bw
         LEFT JOIN author_work aw ON bw.work_id = aw.work_id_fk
         LEFT JOIN author a ON a.author_id = aw.author_id_fk
@@ -190,21 +194,14 @@ def search():
     query = request.args.get("query", "").strip()
     field = request.args.get("searchDropdown", "title")
 
-    books = fetch_books_from_db(query, field)
+    if not query:
+        books = fetch_books_from_db()
+    else:
+        books = fetch_books_from_db(query, field)
 
     if request.headers.get("HX-Request"):
         return render_template("partials/book_list.html", books=books)
     return render_template("index.html", books=books)
-
-@app.route('/genre/<genre>')
-def filter_by_genre(genre):
-    all_books = fetch_books_from_db()
-    filtered = [book for book in all_books if genre.lower() in book['genres'].lower()]
-    
-    if request.headers.get("HX-Request"):
-        return render_template("partials/book_list.html", books=filtered)
-    return render_template("index.html", books=filtered)
-
 
 
 

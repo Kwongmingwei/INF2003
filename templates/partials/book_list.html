@@ -1,6 +1,6 @@
 {% for book in books %}
-  <div class="border p-4 rounded mb-4 shadow">
-    <h2 class="text-xl font-semibold">
+  <div class="book-card">
+    <h2>
       <a href="{{ url_for('book_detail', book_id=book.work_id) }}">{{ book.title }}</a>
     </h2>
     <p><strong>Author(s):</strong> {{ book.authors }}</p>
