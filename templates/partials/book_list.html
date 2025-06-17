@@ -1,10 +1,11 @@
-<div class="book-list">
-  {% for id, book in books.items() %}
-  <a href="/book/{{ id }}" class="book-card">
-    <h3>{{ book.title }}</h3>
-    <p>by {{ book.author }}</p>
-  </a>
-  {% else %}
-    <p>No books found.</p>
-  {% endfor %}
-</div>
+{% for book in books %}
+  <div class="border p-4 rounded mb-4 shadow">
+    <h2 class="text-xl font-semibold">
+      <a href="{{ url_for('book_detail', book_id=book.work_id) }}">{{ book.title }}</a>
+    </h2>
+    <p><strong>Author(s):</strong> {{ book.authors }}</p>
+    <p><strong>Genre(s):</strong> {{ book.genres }}</p>
+  </div>
+{% else %}
+  <p>No books found.</p>
+{% endfor %}

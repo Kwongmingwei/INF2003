@@ -1,42 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>{{ book.title }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-  <a href="{{ url_for('index') }}">&larr; Back to Home</a>
-  <div class="book-detail">
-    <h2>{{ book.title }}</h2>
-    <p><strong>Author:</strong> {{ book.author }}</p>
-    <p><strong>Genre:</strong> {{ book.genre }}</p>
-    <p><strong>ISBN:</strong> {{ book.isbn }}</p>
-    <p><strong>Description:</strong> {{ book.description }}</p>
-  </div>
+{% extends "base.html" %}
+{% block content %}
+  <div class="max-w-2xl mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-2">{{ book.title }}</h1>
+    <p><strong>Author(s):</strong> {{ book.authors }}</p>
+    <p><strong>Genre(s):</strong> {{ book.genres }}</p>
+    <p class="mt-2">{{ book.description }}</p>
 
+    <hr class="my-4">
 
-  <div class="review-section" style="margin-top: 30px;">
-    {% if session.get('username') %}
-      <h3>Leave a Review</h3>
-      <form method="POST" action="{{ url_for('submit_review', book_id=book_id) }}">
-        <textarea name="comment" placeholder="Write your review..." required></textarea><br>
-        <input type="number" name="rating" min="1" max="5" required>
-        <button type="submit">Submit Review</button>
-      </form>
-    {% else %}
-      <p><a href="{{ url_for('login') }}">Log in</a> to write a review.</p>
-    {% endif %}
-
-    <h3>Reviews:</h3>
+    <h2 class="text-xl font-semibold mb-2">Reviews</h2>
     {% for review in reviews %}
-      <div>
-        <p><strong>{{ review.user }}</strong> (Rating: {{ review.rating }}/5)</p>
+      <div class="border rounded p-2 mb-2">
+        <p><strong>{{ review.user }}</strong> rated: {{ review.rating }}/5</p>
         <p>{{ review.comment }}</p>
       </div>
     {% else %}
       <p>No reviews yet.</p>
     {% endfor %}
+
+    {% if session.get("username") %}
+    <form method="post" action="{{ url_for('submit_review', book_id=book_id) }}" class="mt-4">
+      <label for="rating" class="block font-semibold">Rating:</label>
+      <select name="rating" id="rating" class="border rounded w-full mb-2">
+        {% for i in range(1, 6) %}
+        <option value="{{ i }}">{{ i }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="comment" class="block font-semibold">Comment:</label>
+      <textarea name="comment" id="comment" class="border rounded w-full mb-2" required></textarea>
+
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Submit Review</button>
+    </form>
+    {% else %}
+      <p><a href="{{ url_for('login') }}" class="text-blue-600 underline">Login to leave a review</a></p>
+    {% endif %}
   </div>
-</body>
-</html>
+{% endblock %}
