@@ -169,16 +169,6 @@ body {
   color: #444;
 }
 
-.review-section ul {
-  list-style: none;
-  padding-left: 0;
-}
-
-.review-section li {
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ddd;
-}
 
 .review-section p {
   margin: 4px 0;
@@ -219,59 +209,8 @@ form button:hover {
   background-color: #357ab7;
 }
 
-/* Login Page */
-body.login-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-}
 
-.login-form {
-  background-color: #fff;
-  padding: 30px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  width: 300px;
-}
 
-.login-form h2 {
-  margin-bottom: 20px;
-  color: #333;
-  text-align: center;
-}
-
-.login-form label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 14px;
-}
-
-.login-form input[type="text"],
-.login-form input[type="password"] {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 14px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-.login-form button {
-  width: 100%;
-  padding: 10px;
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.login-form button:hover {
-  background-color: #357ab7;
-}
 
 
 .back-button {
