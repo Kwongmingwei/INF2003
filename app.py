@@ -6,8 +6,8 @@ from flask import Flask, render_template, request, redirect, url_for, session
 def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
-        user='root',
-        password='mingwei',
+        user='root', #change this
+        password='mingwei', #change this
         database='book_review',
         charset='utf8mb4'
     )
