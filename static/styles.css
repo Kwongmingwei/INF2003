@@ -94,3 +94,63 @@ button:hover {
   background: #fff;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
+
+.input-field {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.back-button {
+  display: inline-block;
+  margin-bottom: 16px;
+  text-decoration: none;
+  color: #4a90e2;
+  font-size: 14px;
+  transition: color 0.3s;
+}
+
+.back-button:hover {
+  color: #357ab7;
+}
+
+.search-form {
+  margin: 20px 0;
+}
+
+.search-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input,
+.search-dropdown,
+.search-button {
+  padding: 8px;
+  font-size: 16px;
+}
+
+.search-input {
+  flex: 1;
+}
+
+.search-dropdown {
+  width: 150px;
+}
+
+.search-button {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.search-button:hover {
+  background-color: #357ab7;
+}

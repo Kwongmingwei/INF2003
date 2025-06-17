@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
+
   <div class="search-bar">
-    <form hx-get="/search" hx-target="#book-results" hx-push-url="true">
-      <input type="text" name="query" placeholder="Search...">
-      <select name="searchDropdown">
-        <option value="title">Title</option>
-        <option value="author">Author</option>
-      </select>
-      <button type="submit">Search</button>
+    <form hx-get="/search" hx-target="#book-results" hx-push-url="true" class="search-form">
+      <div class="search-container">
+        <input type="text" name="query" placeholder="Search..." class="search-input">
+        <select name="searchDropdown" class="search-dropdown">
+          <option value="title">Title</option>
+          <option value="author">Author</option>
+        </select>
+        <button type="submit" class="search-button">Search</button>
+      </div>
     </form>
   </div>
 

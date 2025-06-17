@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
   <div class="book-detail">
+
+    <a href="{{ url_for('index') }}" class="back-button">← Back to Home</a>
     <h1>{{ book.title }}</h1>
     <p><strong>Author(s):</strong> {{ book.authors }}</p>
     <p><strong>Genre(s):</strong> {{ book.genres }}</p>
