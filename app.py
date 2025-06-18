@@ -41,6 +41,8 @@ reviews = {
     ]
 }
 
+<<<<<<< Updated upstream
+=======
 #db connection test
 #flask run
 #http://localhost:5000/db-test
@@ -118,6 +120,18 @@ def fetch_book_details(work_id):
     conn.close()
     return book
 
+def fetch_user_from_db(username):
+
+    # Fetch user from database
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM user WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return user
+
+>>>>>>> Stashed changes
 
 @app.route('/')
 def index():
@@ -177,10 +191,15 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        if username in users and users[username]['password'] == password:
-            session['username'] = username
+
+        user = fetch_user_from_db(username)
+
+        if user and user['password'] == password:
+            session['username'] = user['username']
+            session['user_id'] = user['user_id']  # optional: useful for tracking user actions
             return redirect(url_for('index'))
         return "Invalid credentials", 401
+
     return render_template('login.html')
 
 
