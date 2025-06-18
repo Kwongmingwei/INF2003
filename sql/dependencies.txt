@@ -1,1 +1,1 @@
-pip install pymysql
+pip install pymysql isbnlib
