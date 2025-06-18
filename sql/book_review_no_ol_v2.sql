@@ -25161,11 +25161,11 @@ INSERT INTO `category` (`genre_id`, `work_id`) VALUES
 
 -- Dumping structure for table book_review.genre
 CREATE TABLE IF NOT EXISTS `genre` (
-  `genre_id` int(11) NOT NULL,
+  `genre_id` int(11) NOT NULL AUTO_INCREMENT,
   `genre_name` varchar(100) NOT NULL DEFAULT '',
   PRIMARY KEY (`genre_id`),
   UNIQUE KEY `genre_name` (`genre_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=681 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 -- Dumping data for table book_review.genre: ~680 rows (approximately)
 INSERT INTO `genre` (`genre_id`, `genre_name`) VALUES
@@ -25852,7 +25852,7 @@ INSERT INTO `genre` (`genre_id`, `genre_name`) VALUES
 
 -- Dumping structure for table book_review.user
 CREATE TABLE IF NOT EXISTS `user` (
-  `user_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(50) NOT NULL,
   `password` varchar(50) NOT NULL,
   `email` varchar(100) NOT NULL,
@@ -25860,7 +25860,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7889 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 -- Dumping data for table book_review.user: ~7,888 rows (approximately)
 INSERT INTO `user` (`user_id`, `username`, `password`, `email`, `date_joined`) VALUES
