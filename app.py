@@ -7,7 +7,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
         user='root', #change this
-        password='mingwei', #change this
+        password='Is13579246810', #change this
         database='book_review',
         charset='utf8mb4'
     )
@@ -65,9 +65,9 @@ def fetch_books_from_db(query=None, field="title"):
     sql = """
         SELECT bw.work_id, bw.title, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
         FROM book_work bw
-        LEFT JOIN author_work aw ON bw.work_id = aw.work_id_fk
-        LEFT JOIN author a ON a.author_id = aw.author_id_fk
-        LEFT JOIN category c ON c.work_id_fk = bw.work_id
+        LEFT JOIN author_work aw ON bw.work_id = aw.work_id
+        LEFT JOIN author a ON a.author_id = aw.author_id
+        LEFT JOIN category c ON c.work_id = bw.work_id
         LEFT JOIN genre g ON g.genre_id = c.genre_id
     """
 
@@ -106,9 +106,9 @@ def fetch_book_details(work_id):
     cursor.execute("""
         SELECT bw.title, bw.description, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
         FROM book_work bw
-        LEFT JOIN author_work aw ON bw.work_id = aw.work_id_fk
-        LEFT JOIN author a ON a.author_id = aw.author_id_fk
-        LEFT JOIN category c ON c.work_id_fk = bw.work_id
+        LEFT JOIN author_work aw ON bw.work_id = aw.work_id
+        LEFT JOIN author a ON a.author_id = aw.author_id
+        LEFT JOIN category c ON c.work_id = bw.work_id
         LEFT JOIN genre g ON g.genre_id = c.genre_id
         WHERE bw.work_id = %s
         GROUP BY bw.work_id
