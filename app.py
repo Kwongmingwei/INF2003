@@ -1,16 +1,29 @@
 
-
+import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
+
+
+def get_db_connection():
+    return mysql.connector.connect(
+        host='localhost',
+        user='root', #change this
+        password='mingwei', #change this
+        database='book_review',
+        charset='utf8mb4'
+    )
 
 app = Flask(__name__)
 app.secret_key = 'KEY'
 
-# Dummy book data
+'''
 books = {
     1: {"title": "The Simulated Journey", "author": "Jane Doe", "genre": "Adventure", "isbn": "123-4567890123", "description": "An epic voyage into the unknown."},
     2: {"title": "Romantic Algorithms", "author": "John Smith", "genre": "Romance", "isbn": "234-5678901234", "description": "Love and logic intertwined."},
     3: {"title": "History of Nothing", "author": "Alice Example", "genre": "History", "isbn": "345-6789012345", "description": "A deep dive into forgotten times."}
 }
+'''
+# Dummy book data
+
 
 users = {
     "john": {"password": "1234"},
@@ -122,16 +135,17 @@ def fetch_user_from_db(username):
 
 @app.route('/')
 def index():
+    books = fetch_books_from_db()
     if request.headers.get("Hx-Request") == "true":
         return render_template("partials/book_list.html", books=books)
     return render_template('index.html', books=books)
 
 @app.route('/book/<int:book_id>')
 def book_detail(book_id):
-    book = books.get(book_id)
+    book = fetch_book_details(book_id)
     if not book:
         return "Book not found", 404
-    book_reviews = reviews.get(book_id, [])
+    book_reviews = reviews.get(book_id, [])  # still dummy for now
     return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews)
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])
@@ -196,31 +210,17 @@ def logout():
 
 @app.route('/search')
 def search():
-    query = request.args.get("query", "").lower()
+    query = request.args.get("query", "").strip()
     field = request.args.get("searchDropdown", "title")
 
     if not query:
-        filtered = books
+        books = fetch_books_from_db()
     else:
-        filtered = {
-            id: book for id, book in books.items()
-            if query in book.get(field, "").lower()
-        }
+        books = fetch_books_from_db(query, field)
 
     if request.headers.get("HX-Request"):
-        return render_template("partials/book_list.html", books=filtered)
-    return render_template("index.html", books=filtered)
-
-@app.route('/genre/<genre>')
-def filter_by_genre(genre):
-    filtered = {
-        id: book for id, book in books.items()
-        if book['genre'].lower() == genre.lower()
-    }
-    if request.headers.get("HX-Request"):
-        return render_template("partials/book_list.html", books=filtered)
-    return render_template("index.html", books=filtered)
-
+        return render_template("partials/book_list.html", books=books)
+    return render_template("index.html", books=books)
 
 
 
