@@ -7,7 +7,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
         user='root', #change this
-        password='password', #change this
+        password='mingwei', #change this
         database='book_review',
         charset='utf8mb4'
     )
@@ -15,14 +15,7 @@ def get_db_connection():
 app = Flask(__name__)
 app.secret_key = 'KEY'
 
-'''
-books = {
-    1: {"title": "The Simulated Journey", "author": "Jane Doe", "genre": "Adventure", "isbn": "123-4567890123", "description": "An epic voyage into the unknown."},
-    2: {"title": "Romantic Algorithms", "author": "John Smith", "genre": "Romance", "isbn": "234-5678901234", "description": "Love and logic intertwined."},
-    3: {"title": "History of Nothing", "author": "Alice Example", "genre": "History", "isbn": "345-6789012345", "description": "A deep dive into forgotten times."}
-}
-'''
-# Dummy book data
+
 
 
 users = {
@@ -41,6 +34,33 @@ reviews = {
     ]
 }
 
+
+def fetch_all_genres():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT genre_name FROM genre ORDER BY genre_name")
+    genres = [row['genre_name'] for row in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return genres
+
+
+def fetch_top_genres():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT g.genre_name, COUNT(*) as count
+        FROM genre g
+        JOIN category c ON g.genre_id = c.genre_id
+        GROUP BY g.genre_name
+        ORDER BY count DESC
+        LIMIT 15;
+    """)
+    genres = [row['genre_name'] for row in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return genres
+
 #db connection test
 #flask run
 #http://localhost:5000/db-test
@@ -58,7 +78,7 @@ def db_test():
         return f"❌ Database connection failed: {e}"
 
 
-def fetch_books_from_db(query=None, field="title"):
+def fetch_books_from_db(query=None, field="title",genres=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -81,6 +101,11 @@ def fetch_books_from_db(query=None, field="title"):
         elif field == "author":
             conditions.append("a.name LIKE %s")
             params.append(f"%{query}%")
+    
+    if genres:
+        genre_placeholders = ','.join(['%s'] * len(genres))
+        conditions.append(f"g.genre_name IN ({genre_placeholders})")
+        params.extend(genres)
 
     if conditions:
         sql += " WHERE " + " AND ".join(conditions)
@@ -132,16 +157,18 @@ def fetch_user_from_db(username):
 @app.route('/')
 def index():
     books = fetch_books_from_db()
+    all_genres = fetch_all_genres()
+    top_genres = fetch_top_genres() 
     if request.headers.get("Hx-Request") == "true":
         return render_template("partials/book_list.html", books=books)
-    return render_template('index.html', books=books)
+    return render_template('index.html', books=books, all_genres=all_genres, top_genres=top_genres)
 
 @app.route('/book/<int:book_id>')
 def book_detail(book_id):
     book = fetch_book_details(book_id)
     if not book:
         return "Book not found", 404
-    book_reviews = reviews.get(book_id, [])  # still dummy for now
+    book_reviews = reviews.get(book_id, []) 
     return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews)
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])
@@ -165,22 +192,6 @@ def submit_review(book_id):
     return redirect(url_for('book_detail', book_id=book_id))
 
 
-'''
-@app.route('/search')
-def search():
-    query = request.args.get("query", "").lower()
-    field = request.args.get("searchDropdown", "title")
-
-    if not query:
-        filtered = books
-    else:
-        filtered = {
-            id: book for id, book in books.items()
-            if query in book.get(field, "").lower()
-        }
-
-    return render_template("partials/book_list.html", books=filtered)
-'''
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -208,15 +219,14 @@ def logout():
 def search():
     query = request.args.get("query", "").strip()
     field = request.args.get("searchDropdown", "title")
+    genres_str = request.args.get("genres", "")
+    genre_list = genres_str.split(",") if genres_str else []
 
-    if not query:
-        books = fetch_books_from_db()
-    else:
-        books = fetch_books_from_db(query, field)
+    books = fetch_books_from_db(query if query else None, field, genre_list)
 
     if request.headers.get("HX-Request"):
         return render_template("partials/book_list.html", books=books)
-    return render_template("index.html", books=books)
+    return render_template("index.html", books=books, all_genres=fetch_all_genres(), top_genres=fetch_top_genres())
 
 
 
