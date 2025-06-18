@@ -1,21 +1,935 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 
-  <div class="search-bar">
-    <form hx-get="/search" hx-target="#book-results" hx-push-url="true" class="search-form">
-      <div class="search-container">
-        <input type="text" name="query" placeholder="Search..." class="search-input">
-        <select name="searchDropdown" class="search-dropdown">
-          <option value="title">Title</option>
-          <option value="author">Author</option>
-        </select>
-        <button type="submit" class="search-button">Search</button>
+<div class="search-bar">
+  <form
+    hx-get="/search"
+    hx-target="#book-results"
+    hx-push-url="true"
+    class="search-form"
+  >
+    <div class="search-container">
+      <input
+        type="text"
+        name="query"
+        placeholder="Search books, authors..."
+        class="search-input"
+        id="search-input"
+      />
+      <button type="button" class="filters-button" onclick="openFiltersModal()">
+        Advanced Filters
+      </button>
+      <button type="submit" class="search-button">Search</button>
+    </div>
+
+    <input type="hidden" name="genres" id="hidden-genres" value="" />
+    <input
+      type="hidden"
+      name="searchType"
+      id="hidden-search-type"
+      value="all"
+    />
+  </form>
+</div>
+
+<div class="active-filters" id="active-filters" style="display: none">
+  <h3>Active Filters:</h3>
+  <div class="filter-tags" id="filter-tags"></div>
+  <button type="button" class="clear-filters-btn" onclick="clearAllFilters()">
+    Clear All
+  </button>
+</div>
+
+<h1>BOOOKS</h1>
+<div id="book-results">{% include "partials/book_list.html" %}</div>
+
+<div class="modal-overlay" id="filters-modal" onclick="closeFiltersModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Advanced Filters</h2>
+      <button class="close-btn" onclick="closeFiltersModal()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="filter-section">
+        <label class="filter-label">Genres:</label>
+        <div class="genre-search-container">
+          <input
+            type="text"
+            id="genre-filter-input"
+            placeholder="Search genres..."
+            class="genre-search-input"
+          />
+          <div class="genre-grid" id="genre-grid"></div>
+        </div>
+        <div class="selected-genres" id="selected-genres"></div>
       </div>
-    </form>
-  </div>
 
-  <h1>BOOOKS</h1>
-  <div id="book-results">
-    {% include "partials/book_list.html" %}
+      <div class="filter-section">
+        <label class="filter-label">Publication Year:</label>
+        <div class="year-inputs">
+          <input
+            type="number"
+            id="year-from"
+            placeholder="From"
+            class="year-input"
+          />
+          <span>to</span>
+          <input
+            type="number"
+            id="year-to"
+            placeholder="To"
+            class="year-input"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="clear-btn" onclick="resetFilters()">Clear All</button>
+      <button class="apply-btn" onclick="applyFilters()">Apply Filters</button>
+    </div>
   </div>
+</div>
+
+<script>
+  const genres = [
+    "Artists books",
+    "Childrens libraries",
+    "Childrens literature",
+    "Childrens parties",
+    "Childrens stories",
+    "Parkinsons disease",
+    "Workers compensation",
+    "1800-1815",
+    "1811",
+    "1939-1945",
+    "1941",
+    "1961-1975",
+    "3D studio",
+    "44 Scotland Street (Edinburgh)",
+    "Abduction",
+    "Abused children",
+    "Abused women",
+    "Abusive men",
+    "Academic writing",
+    "Acting",
+    "Action figures (Toys)",
+    "Active server pages",
+    "Activities",
+    "Actresses",
+    "Administration of",
+    "Administrative assistants",
+    "Admirals",
+    "Adobe Photoshop",
+    "Adolescence",
+    "Adoptees",
+    "Adultery",
+    "Adventure and adventurers",
+    "Adventure stories",
+    "Aeronautics",
+    "Aesthetics",
+    "Afghanistan",
+    "Africa",
+    "African American dramatists",
+    "African American musicians",
+    "African Americans",
+    "Aging",
+    "Agriculture",
+    "Airplanes",
+    "Akenfield (England)",
+    "Albert (Fictitious character)",
+    "Alcoholics",
+    "Algebra",
+    "Algorithms",
+    "Alienation (Social psychology)",
+    "Alienation of affections",
+    "Alloys",
+    "Alphabet",
+    "Alternative medicine",
+    "Alternative rock music",
+    "Amateur radio stations",
+    "American",
+    "American Dream",
+    "American fiction",
+    "American literature",
+    "American poetry",
+    "American wit and humor",
+    "Americana",
+    "Americanisms",
+    "Americans",
+    "Amish",
+    "Angels",
+    "Animal behavior",
+    "Animal communication",
+    "Animal rights activists",
+    "Animal sounds",
+    "Animals",
+    "Animals in art",
+    "Anorexia nervosa",
+    "Anthropologists",
+    "Anthropology",
+    "Anti-clericalism",
+    "Antichrist",
+    "Antilles",
+    "Antiquarian booksellers",
+    "Antiques",
+    "Antiquities",
+    "Apologetics",
+    "Appalachian Trail",
+    "Application program interfaces (Computer software)",
+    "Application software",
+    "Appliqué",
+    "Apprentices",
+    "Aquarium fishes",
+    "Arab-Israeli conflict",
+    "Arabian knights",
+    "ArcView",
+    "Architects",
+    "Architecture",
+    "Armageddon",
+    "Armes nucléaires - Politique gouvernementale - États-Unis",
+    "Arms control",
+    "Art",
+    "Art deco",
+    "Arthritis",
+    "Arthurian romances",
+    "Artistic",
+    "Artists",
+    "Assertiveness (Psychology)",
+    "Asthma in children",
+    "Astronauts",
+    "Astronomy",
+    "Atlanta (Ga.)",
+    "Atonement",
+    "Attack on",
+    "Auctions",
+    "Audiobooks",
+    "Audiotapes",
+    "Australia",
+    "Australian fiction",
+    "Austria",
+    "Authors",
+    "Authorship",
+    "Autobiography",
+    "Automobile industry and trade",
+    "Automobiles",
+    "Autumn",
+    "Avarice",
+    "Babysitters",
+    "Bagpipe",
+    "Banks and banking",
+    "Baptism",
+    "Baptist women",
+    "Barcelona (Spain)",
+    "Bars (Drinking establishments)",
+    "Bartholomew",
+    "Bashfulness",
+    "Battle of",
+    "Beadwork",
+    "Bean",
+    "Bears",
+    "Beauty",
+    "Beck",
+    "Beer",
+    "Belgian sheepdog",
+    "Belgium",
+    "Belize",
+    "Bellehaven (Wash. : Imaginary place)",
+    "Belly dance",
+    "Best books",
+    "Best sellers",
+    "Bible",
+    "Bibles",
+    "Bibliography",
+    "Big bands",
+    "Bildungsromans",
+    "Biography",
+    "Birds",
+    "Blackjack (Game)",
+    "Blacks",
+    "Blood plasma",
+    "Boats and boating",
+    "Body",
+    "Bohemianism in art",
+    "Bomber pilots",
+    "Bond",
+    "Book industries and trade",
+    "Book of Mormon",
+    "Bookbinding",
+    "Books and reading",
+    "Border collie",
+    "Brazil",
+    "Bridegrooms",
+    "British",
+    "Brokers",
+    "Brother (Fictitious character)",
+    "Brothers",
+    "Brothers and sisters",
+    "Buddhism",
+    "Buddhist gods",
+    "Buddhist pilgrims and pilgrimages",
+    "Bushcraft",
+    "Business",
+    "Business ethics",
+    "Business logistics",
+    "Businessmen",
+    "Cadfael",
+    "Calif.)",
+    "California",
+    "Camping",
+    "Campion",
+    "Cancer in animals",
+    "Cannery Row (Monterey)",
+    "Canning and preserving",
+    "Canvas embroidery",
+    "Capitalism",
+    "Capitalists and financiers",
+    "Carbohydrates",
+    "Cardiology",
+    "Care of the sick",
+    "Career education (Primary)",
+    "Caribbean",
+    "Carnival",
+    "Cat in the Hat (Fictitious character)",
+    "Catastrophes (Geology)",
+    "Catholic traditionalist movement",
+    "Cats",
+    "Cave diving",
+    "Celebrities",
+    "Celibacy",
+    "Celts",
+    "Cemeteries",
+    "Cerebral dominance",
+    "Cerebrovascular disease",
+    "Change (Psychology)",
+    "Characters and characteristics in literature",
+    "Charity-schools",
+    "Chess",
+    "Child care",
+    "Child rearing",
+    "Child sexual abuse",
+    "Childbirth",
+    "Children",
+    "Children of clergy",
+    "Children with disabilities",
+    "China",
+    "Chinese Americans",
+    "Chivalry",
+    "Christian drama",
+    "Christian fiction",
+    "Christian pilgrims and pilgrimages",
+    "Christian poetry",
+    "Christian saints",
+    "Christianity and other religions",
+    "Christmas",
+    "Christmas stories",
+    "Church work with the poor",
+    "Church year meditations",
+    "Cinematography",
+    "City and town life",
+    "Civil War",
+    "Civilization",
+    "Classical literature",
+    "Classroom management",
+    "Climate and civilization",
+    "Clinical medicine",
+    "Clothing trade",
+    "Collagen diseases",
+    "Collectibles",
+    "College readers",
+    "Color in textile crafts",
+    "Colors",
+    "Comic books",
+    "Comics",
+    "Commandments (Judaism)",
+    "Commercial correspondence",
+    "Commercial photography",
+    "Common fallacies",
+    "Communication",
+    "Communication in families",
+    "Communist strategy",
+    "Computer animation",
+    "Computer graphics",
+    "Computer input-output equipment",
+    "Computer networks",
+    "Computer software",
+    "Computer viruses",
+    "Computers",
+    "Consumer credit",
+    "Contempt of legislative bodies",
+    "Cookery",
+    "Cookies",
+    "Cooking",
+    "Cooking (Wild foods)",
+    "Copenhagen (Denmark)",
+    "Copyright",
+    "Corporations",
+    "Corruption investigation",
+    "Cosmology",
+    "Costa Rica",
+    "Counting",
+    "Couples",
+    "Courage",
+    "Crafts",
+    "Creative ability",
+    "Creative thinking",
+    "Crime",
+    "Crimes without victims",
+    "Criminal justice",
+    "Critical thinking",
+    "Criticism",
+    "Crustacea",
+    "Crystallization",
+    "Cults",
+    "Culture",
+    "Curiosities and wonders",
+    "Current Events",
+    "Czechoslovakia",
+    "Dams",
+    "Dantes Subject Standardized Tests",
+    "Daredevils",
+    "Dating (Social customs)",
+    "Daughters",
+    "Day trading (Securities)",
+    "Deer hunting",
+    "Demoniac possession",
+    "Depersonalization",
+    "Design",
+    "Designers",
+    "Desserts",
+    "Detective and mystery stories",
+    "Deverry (Imaginary place)",
+    "Diet therapy",
+    "Dieu - Amour",
+    "Differential",
+    "Disciplines",
+    "Discworld (Imaginary place)",
+    "Dogs",
+    "Domestic fiction",
+    "Dominican Republic",
+    "Dragons",
+    "Drama",
+    "Dramatists",
+    "Dreams",
+    "Dutch language",
+    "Dynamics",
+    "Earth (Planet)",
+    "East Asia",
+    "Eavesdropping",
+    "Economic indicators",
+    "Economic policy",
+    "Economics",
+    "Edible landscaping",
+    "Edinburgh (Scotland)",
+    "Education",
+    "Egypt",
+    "Electronic book",
+    "Electronic books",
+    "Electronic games",
+    "Electronic journals",
+    "Electronics",
+    "Elite (Social sciences)",
+    "Elves",
+    "Embedded war correspondents",
+    "Emergency vehicles",
+    "Emotions",
+    "Encyclopaedia Britannica",
+    "Encyclopedias and dictionaries",
+    "Enemies",
+    "Engineering",
+    "England",
+    "English",
+    "English fiction",
+    "English language",
+    "English literature",
+    "English poetry",
+    "Erotic",
+    "Erotic poetry",
+    "Ethnology",
+    "Etiquette",
+    "Evidence",
+    "Exclusionary rule (Evidence)",
+    "Executions and executioners",
+    "Executive orders",
+    "Experimental design",
+    "Expert",
+    "ExplorIt",
+    "Fairies",
+    "Fairy tales",
+    "Families",
+    "Family",
+    "Fantastic comic books",
+    "Fantasy",
+    "Fantasy comic books",
+    "Fantasy fiction",
+    "Fast food restaurants",
+    "Federal aid to transportation",
+    "Female friendship",
+    "Feminism",
+    "Feminism and music",
+    "Fibromyalgia",
+    "Fiction",
+    "Fiction in English",
+    "Fighter planes",
+    "Finance",
+    "Fitness",
+    "Floriculture",
+    "Folklore",
+    "Food",
+    "Foreign Language Study",
+    "Forensic psychology",
+    "Foundlings",
+    "France",
+    "Frankenstein (Fictitious character)",
+    "French",
+    "French language",
+    "Friendship",
+    "Frontier and pioneer life",
+    "Fuentes de Oñoro",
+    "Fur trade",
+    "Games",
+    "Gangs",
+    "Garden ornaments and furniture",
+    "Gardening",
+    "Gay men in art",
+    "Geography",
+    "Geology",
+    "Geometry",
+    "German",
+    "Germany",
+    "Ghosts",
+    "Gluten-free diet",
+    "God",
+    "Good and evil",
+    "Grail",
+    "Graphic novels",
+    "Great Britain",
+    "Great River Road",
+    "Greek language",
+    "Guides (Spiritualism)",
+    "Guilt",
+    "Guineafowl",
+    "Hadith",
+    "Hawaii",
+    "Health",
+    "Hell",
+    "Herbs",
+    "Heroes",
+    "Hewlett-Packard computers",
+    "High interest-low vocabulary books",
+    "Historical fiction",
+    "Historical films",
+    "Historical romance",
+    "History",
+    "Ho Chi Minh City (Vietnam)",
+    "Hobbies",
+    "Holistic nursing",
+    "Hollywood (Los Angeles)",
+    "Holocaust",
+    "Holocaust victims",
+    "Home",
+    "Horror tales",
+    "Horses",
+    "House",
+    "House buying",
+    "Humor",
+    "Illegitimacy",
+    "Impostors and imposture",
+    "Impressionism",
+    "India",
+    "Indian mythology",
+    "Indians of North America",
+    "Indirect discourse in literature",
+    "Individual retirement accounts",
+    "Industries",
+    "Inheritance and succession",
+    "Initial teaching alphabet",
+    "Insurance agents",
+    "Interior decoration",
+    "International agencies",
+    "Inventions",
+    "Investments",
+    "Irish",
+    "Israel",
+    "Italian",
+    "Italian Language-Instruction",
+    "Italy",
+    "Jamaica",
+    "James (Fictitious character)",
+    "James Island (S.C.)",
+    "Japan",
+    "Japanese language",
+    "Jewish (1939-1945)",
+    "Jewish law",
+    "Juvenile Fiction",
+    "Juvenile Nonfiction",
+    "Kannada fiction",
+    "Karate",
+    "Kauai (Hawaii)",
+    "Kitchen utensils",
+    "Kites",
+    "Knitting",
+    "Knowledge",
+    "Kung fu",
+    "L.R.",
+    "Language Arts",
+    "Large type books",
+    "Law",
+    "Law firms",
+    "Legend of Zelda (Game)",
+    "Leisure class",
+    "Lesbians",
+    "Lesser",
+    "Liberalism",
+    "Libraries",
+    "Linux (Computer file)",
+    "Literary Collections",
+    "Literary Criticism",
+    "Louisiana",
+    "Love in art",
+    "Love stories",
+    "Low-fat diet",
+    "Madeline (Fictitious character)",
+    "Magic",
+    "Malta",
+    "Man-woman relationships",
+    "Management",
+    "Marketing",
+    "Marriage",
+    "Martin (Fictitious character)",
+    "Mathematical optimization",
+    "Mathematics",
+    "Medical",
+    "Medicine",
+    "Medieval",
+    "Meditations",
+    "Mediterranean",
+    "Men",
+    "Mexico",
+    "Microcomputers",
+    "Middle East",
+    "Military",
+    "Military law",
+    "Mind",
+    "Mindfulness (Psychology)",
+    "Missions",
+    "Modern",
+    "Moon",
+    "Mormons",
+    "Mosquito (Bombers)",
+    "Motion picture actors and actresses",
+    "Motion picture industry",
+    "Multilevel marketing",
+    "Murder",
+    "Music",
+    "Music trade",
+    "Napoleonic Wars",
+    "National",
+    "Nature",
+    "Naval convoys",
+    "Netherlands",
+    "New Zealand",
+    "Nobility",
+    "Nonviolence",
+    "North Atlantic Ocean",
+    "Nuclear warfare",
+    "Occultism",
+    "Octopuses",
+    "Ornamental grasses",
+    "Outlaws",
+    "Paranormal romance stories",
+    "Parapsychology",
+    "Parenting",
+    "Passover cooking",
+    "Pearl Harbor (Hawaii)",
+    "Pedophilia",
+    "Performing Arts",
+    "Personal",
+    "Peter (Fictitious character)",
+    "Pets",
+    "Philosophy",
+    "Photography",
+    "Photography of the nude",
+    "Physical therapy",
+    "Physics",
+    "Pictorial",
+    "Pirates",
+    "Poetry",
+    "Polish literature",
+    "Political Science",
+    "Political refugees",
+    "Politicians",
+    "Prayer",
+    "Presidents",
+    "Pressure cooking",
+    "Printing",
+    "Private investigators",
+    "Programming languages (Electronic computers)",
+    "Proofreading",
+    "Protocolos (Computación)",
+    "Psychology",
+    "Public administration",
+    "Public welfare",
+    "Publishers and publishing",
+    "Punk rock music",
+    "Puppets",
+    "Puzzles",
+    "Quilting",
+    "Qurʼan",
+    "Radio",
+    "Radio plays",
+    "Railroad travel",
+    "Readers",
+    "Readers (Primary)",
+    "Reading (Elementary)",
+    "Real estate investment",
+    "Recreation",
+    "Reference",
+    "Refined",
+    "Reformers",
+    "Relationships",
+    "Religion",
+    "Religious fundamentalism",
+    "Renaissance",
+    "Right to die",
+    "Rock groups",
+    "Rock music",
+    "Rock musicians",
+    "Romance fiction",
+    "Russia",
+    "SAT (Educational test)",
+    "Saint John (United States Virgin Islands)",
+    "Santa Claus",
+    "Satanism",
+    "Science",
+    "Science fiction",
+    "Scotland",
+    "Scotland : Imaginary place)",
+    "Seashore",
+    "Secondary",
+    "Sega Genesis video games",
+    "Self (Philosophy)",
+    "Self-Help",
+    "Self-publishing",
+    "Serging",
+    "Serial murderers",
+    "Short stories",
+    "Singers",
+    "Social Science",
+    "Soldiers",
+    "Sonnets",
+    "Soul mates",
+    "South Africa",
+    "Southeast Asia",
+    "Space and time",
+    "Spain",
+    "Spanish language",
+    "Spirit",
+    "Sports",
+    "Study Aids",
+    "Success",
+    "Success in business",
+    "Sunday schools",
+    "Superheroes",
+    "Superman (Comic strip)",
+    "Survival",
+    "Taxation",
+    "Teachers",
+    "Technology",
+    "Television",
+    "Telluride (Colo.)",
+    "Terrorism",
+    "Theater",
+    "Theaters",
+    "Theory of (Christianity)",
+    "Total quality management",
+    "Transportation",
+    "Travel",
+    "Trials (Murder)",
+    "True Crime",
+    "USA today (Arlington)",
+    "United States",
+    "Utopian fiction",
+    "Va.)",
+    "Vampires",
+    "Vietnam War",
+    "Violin",
+    "Vocabulary",
+    "Vocal cords",
+    "Washington (State)",
+    "Water of",
+    "Wine tasting",
+    "Wizards",
+    "Women authors",
+    "World War",
+    "World history",
+    "You bet your life",
+    "Young Adult Fiction",
+    "Young Adult Nonfiction",
+    "etc",
+    "strips",
+  ];
+
+  let selectedGenres = [];
+  let allGenres = [...genres];
+
+  function openFiltersModal() {
+    document.getElementById("filters-modal").style.display = "flex";
+    populateGenreGrid(allGenres);
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeFiltersModal() {
+    document.getElementById("filters-modal").style.display = "none";
+    document.body.style.overflow = "auto";
+  }
+
+  function populateGenreGrid(genresToShow) {
+    const grid = document.getElementById("genre-grid");
+    grid.innerHTML = "";
+
+    genresToShow.slice(0, 15).forEach((genre) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "genre-tag";
+      button.textContent = genre;
+      button.onclick = () => toggleGenre(genre, button);
+
+      if (selectedGenres.includes(genre)) {
+        button.classList.add("selected");
+      }
+
+      grid.appendChild(button);
+    });
+
+    if (genresToShow.length > 15) {
+      const moreButton = document.createElement("div");
+      moreButton.className = "more-genres";
+      moreButton.textContent = `+${genresToShow.length - 15} more genres`;
+      grid.appendChild(moreButton);
+    }
+  }
+
+  function toggleGenre(genre, button) {
+    if (selectedGenres.includes(genre)) {
+      selectedGenres = selectedGenres.filter((g) => g !== genre);
+      button.classList.remove("selected");
+    } else {
+      selectedGenres.push(genre);
+      button.classList.add("selected");
+    }
+    updateSelectedGenresDisplay();
+  }
+
+  function updateSelectedGenresDisplay() {
+    const container = document.getElementById("selected-genres");
+    container.innerHTML = "";
+
+    selectedGenres.forEach((genre) => {
+      const tag = document.createElement("span");
+      tag.className = "selected-genre-tag";
+      tag.innerHTML = `${genre} <button onclick="removeGenre('${genre.replace(
+        /'/g,
+        "\\'"
+      )}')">×</button>`;
+      container.appendChild(tag);
+    });
+  }
+
+  function removeGenre(genre) {
+    selectedGenres = selectedGenres.filter((g) => g !== genre);
+    updateSelectedGenresDisplay();
+    populateGenreGrid(getFilteredGenres());
+  }
+
+  function getFilteredGenres() {
+    const searchTerm = document
+      .getElementById("genre-filter-input")
+      .value.toLowerCase();
+    return allGenres.filter((genre) =>
+      genre.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  function applyFilters() {
+    const yearFrom = document.getElementById("year-from").value;
+    const yearTo = document.getElementById("year-to").value;
+
+    document.getElementById("hidden-genres").value = selectedGenres.join(",");
+    document.getElementById("hidden-search-type").value = "all";
+
+    updateActiveFiltersDisplay();
+    closeFiltersModal();
+
+    document.querySelector(".search-form").dispatchEvent(new Event("submit"));
+  }
+
+  function updateActiveFiltersDisplay() {
+    const activeFilters = document.getElementById("active-filters");
+    const filterTags = document.getElementById("filter-tags");
+
+    let hasFilters = false;
+    filterTags.innerHTML = "";
+
+    if (selectedGenres.length > 0) {
+      const genreTag = document.createElement("span");
+      genreTag.className = "filter-tag";
+      genreTag.textContent = `Genres: ${selectedGenres.slice(0, 3).join(", ")}${
+        selectedGenres.length > 3 ? "..." : ""
+      }`;
+      filterTags.appendChild(genreTag);
+      hasFilters = true;
+    }
+
+    const searchType = "all";
+    if (searchType !== "all") {
+      const typeTag = document.createElement("span");
+      typeTag.className = "filter-tag";
+      typeTag.textContent = `Search: ${searchType}`;
+      filterTags.appendChild(typeTag);
+      hasFilters = true;
+    }
+
+    activeFilters.style.display = hasFilters ? "block" : "none";
+  }
+
+  function clearAllFilters() {
+    selectedGenres = [];
+    document.getElementById("year-from").value = "";
+    document.getElementById("year-to").value = "";
+
+    updateSelectedGenresDisplay();
+    updateActiveFiltersDisplay();
+
+    document.getElementById("hidden-genres").value = "";
+    document.getElementById("hidden-search-type").value = "all";
+
+    document.querySelector(".search-form").dispatchEvent(new Event("submit"));
+  }
+
+  function resetFilters() {
+    clearAllFilters();
+    closeFiltersModal();
+  }
+
+  document
+    .getElementById("genre-filter-input")
+    .addEventListener("input", function () {
+      const filtered = getFilteredGenres();
+      populateGenreGrid(filtered);
+    });
+
+  document
+    .getElementById("rating-slider")
+    .addEventListener("input", function () {
+      const value = this.value;
+      document.getElementById("rating-value").textContent = `${value}+ stars`;
+    });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      closeFiltersModal();
+    }
+  });
+</script>
 {% endblock %}
