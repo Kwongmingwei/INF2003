@@ -28,6 +28,97 @@ reviews = {
     ]
 }
 
+<<<<<<< Updated upstream
+=======
+#db connection test
+#flask run
+#http://localhost:5000/db-test
+@app.route('/db-test')
+def db_test():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DATABASE();")
+        current_db = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return f"✅ Successfully connected to database: {current_db[0]}"
+    except Exception as e:
+        return f"❌ Database connection failed: {e}"
+
+
+def fetch_books_from_db(query=None, field="title"):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    sql = """
+        SELECT bw.work_id, bw.title, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        FROM book_work bw
+        LEFT JOIN author_work aw ON bw.work_id = aw.work_id
+        LEFT JOIN author a ON a.author_id = aw.author_id
+        LEFT JOIN category c ON c.work_id = bw.work_id
+        LEFT JOIN genre g ON g.genre_id = c.genre_id
+    """
+
+    conditions = []
+    params = []
+
+    if query:
+        if field == "title":
+            conditions.append("bw.title LIKE %s")
+            params.append(f"%{query}%")
+        elif field == "author":
+            conditions.append("a.name LIKE %s")
+            params.append(f"%{query}%")
+
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+
+    sql += " GROUP BY bw.work_id LIMIT 1000"
+
+    '''
+    if not query:
+            sql += " LIMIT 1000"
+    '''
+
+    cursor.execute(sql, params)
+    books = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return books
+
+
+def fetch_book_details(work_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT bw.title, bw.description, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        FROM book_work bw
+        LEFT JOIN author_work aw ON bw.work_id = aw.work_id
+        LEFT JOIN author a ON a.author_id = aw.author_id
+        LEFT JOIN category c ON c.work_id = bw.work_id
+        LEFT JOIN genre g ON g.genre_id = c.genre_id
+        WHERE bw.work_id = %s
+        GROUP BY bw.work_id
+    """, (work_id,))
+    book = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return book
+
+def fetch_user_from_db(username):
+
+    # Fetch user from database
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM user WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return user
+
+>>>>>>> Stashed changes
 
 @app.route('/')
 def index():
@@ -86,10 +177,15 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        if username in users and users[username]['password'] == password:
-            session['username'] = username
+
+        user = fetch_user_from_db(username)
+
+        if user and user['password'] == password:
+            session['username'] = user['username']
+            session['user_id'] = user['user_id']  # optional: useful for tracking user actions
             return redirect(url_for('index'))
         return "Invalid credentials", 401
+
     return render_template('login.html')
 
 
