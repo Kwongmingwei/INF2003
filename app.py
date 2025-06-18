@@ -7,7 +7,7 @@ def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
         user='root', #change this
-        password='Is13579246810', #change this
+        password='password', #change this
         database='book_review',
         charset='utf8mb4'
     )
@@ -41,8 +41,6 @@ reviews = {
     ]
 }
 
-<<<<<<< Updated upstream
-=======
 #db connection test
 #flask run
 #http://localhost:5000/db-test
@@ -130,8 +128,6 @@ def fetch_user_from_db(username):
         cursor.close()
         conn.close()
         return user
-
->>>>>>> Stashed changes
 
 @app.route('/')
 def index():
