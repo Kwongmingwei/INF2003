@@ -1,6 +1,7 @@
 
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
+from datetime import date
 
 
 def get_db_connection():
@@ -203,16 +204,52 @@ def login():
 
         if user and user['password'] == password:
             session['username'] = user['username']
-            session['user_id'] = user['user_id']  # optional: useful for tracking user actions
+            session['user_id'] = user['user_id']
             return redirect(url_for('index'))
-        return "Invalid credentials", 401
+        return render_template("login.html", error="Invalid credentials")
 
     return render_template('login.html')
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        datejoined = date.today().strftime('%Y-%m-%d')
+
+        existing_user = fetch_user_from_db(username)
+        if existing_user:
+            return render_template("register.html", error="Username already taken")
+        
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM user WHERE email = %s", (email,))
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return render_template("register.html", error="Email already taken")
+
+        cursor.execute("""
+            INSERT INTO user (username, password, email, date_joined)
+            VALUES (%s, %s, %s, %s)
+        """, (username, password, email, datejoined))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        session['username'] = username
+        return redirect(url_for('index'))
+
+    return render_template('register.html')
 
 
 @app.route('/logout')
 def logout():
     session.pop('username', None)
+    session.clear()
     return redirect(url_for('index'))
 
 @app.route('/search')
