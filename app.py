@@ -2,13 +2,14 @@
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import date
+from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review
 
 
 def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
         user='root', #change this
-        password='mingwei', #change this
+        password='zenden', #change this
         database='book_review',
         charset='utf8mb4'
     )
@@ -25,15 +26,15 @@ users = {
 }
 
 
-reviews = {
-    1: [
-        {"user": "john", "rating": 5, "comment": "Amazing journey!"},
-        {"user": "alice", "rating": 4, "comment": "Exciting and imaginative."}
-    ],
-    3: [
-        {"user": "alice", "rating": 2, "comment": "Too abstract for my taste."}
-    ]
-}
+# reviews = {
+#     1: [
+#         {"user": "john", "rating": 5, "comment": "Amazing journey!"},
+#         {"user": "alice", "rating": 4, "comment": "Exciting and imaginative."}
+#     ],
+#     3: [
+#         {"user": "alice", "rating": 2, "comment": "Too abstract for my taste."}
+#     ]
+# }
 
 
 def fetch_all_genres():
@@ -128,21 +129,26 @@ def fetch_books_from_db(query=None, field="title",genres=None):
 def fetch_book_details(work_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
+
     cursor.execute("""
-        SELECT bw.title, bw.description, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        SELECT bw.title, bw.description, be.isbn13,
+               GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors,
+               GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
         FROM book_work bw
         LEFT JOIN author_work aw ON bw.work_id = aw.work_id
         LEFT JOIN author a ON a.author_id = aw.author_id
         LEFT JOIN category c ON c.work_id = bw.work_id
         LEFT JOIN genre g ON g.genre_id = c.genre_id
+        LEFT JOIN book_edition be ON be.work_id = bw.work_id
         WHERE bw.work_id = %s
         GROUP BY bw.work_id
     """, (work_id,))
+    
     book = cursor.fetchone()
     cursor.close()
     conn.close()
     return book
+
 
 def fetch_user_from_db(username):
 
@@ -169,7 +175,10 @@ def book_detail(book_id):
     book = fetch_book_details(book_id)
     if not book:
         return "Book not found", 404
-    book_reviews = reviews.get(book_id, []) 
+
+    isbn13 = book.get("isbn13")
+    book_reviews = get_reviews_by_isbn(isbn13) if isbn13 else []
+
     return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews)
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])
@@ -178,19 +187,20 @@ def submit_review(book_id):
         return "Unauthorized", 401
 
     comment = request.form['comment']
-    rating = request.form['rating']
+    rating = int(request.form['rating'])
     username = session['username']
 
-    if book_id not in reviews:
-        reviews[book_id] = []
+    book = fetch_book_details(book_id)
+    isbn13 = book.get("isbn13")
 
-    reviews[book_id].append({
-        "user": username,
-        "comment": comment,
-        "rating": rating
-    })
+    if not isbn13:
+        return "Cannot add review: ISBN13 not found", 400
+
+    # Insert into MongoDB
+    create_review(username, isbn13, rating, comment, comment)
 
     return redirect(url_for('book_detail', book_id=book_id))
+
 
 
 
@@ -265,6 +275,35 @@ def search():
         return render_template("partials/book_list.html", books=books)
     return render_template("index.html", books=books, all_genres=fetch_all_genres(), top_genres=fetch_top_genres())
 
+@app.route('/book/<int:book_id>/review/edit/<review_id>', methods=['GET', 'POST'])
+def edit_review(book_id, review_id):
+    review = get_review_by_id(review_id)
+    if not review:
+        return "Review not found", 404
+
+    if request.method == 'POST':
+        new_summary = request.form['summary']
+        new_rating = int(request.form['rating'])
+
+        update_review(review_id, new_summary, new_rating)
+        return redirect(url_for('book_detail', book_id=book_id))
+
+    return render_template('edit_review.html', review=review, book_id=book_id)
+
+@app.route('/book/<int:book_id>/review/delete/<review_id>', methods=['POST'])
+def delete_review_route(book_id, review_id):
+    if 'username' not in session:
+        return "Unauthorized", 401
+
+    review = get_review_by_id(review_id)
+    if not review:
+        return "Review not found", 404
+
+    if review['User_id'] != session['username']:
+        return "Forbidden", 403
+
+    delete_review(review_id)
+    return redirect(url_for('book_detail', book_id=book_id))
 
 
 if __name__ == '__main__':
