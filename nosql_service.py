@@ -2,10 +2,19 @@
 from pymongo import MongoClient
 from datetime import datetime
 from bson.objectid import ObjectId
+import mysql.connector
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["reviews_db"]
 reviews = db["reviews"]
+
+def get_db_connection():
+    return mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='zenden',
+        database='book_review'
+    )
 
 def create_review(user_id, isbn13, rating, summary, text):
     review = {
@@ -19,20 +28,31 @@ def create_review(user_id, isbn13, rating, summary, text):
     return reviews.insert_one(review)
 
 def get_reviews_by_isbn(isbn13):
-    if not isbn13:
-        return []
-    
-    # Fetch all reviews with matching ISBN13, newest first
-    reviews_cursor = reviews.find({"ISBN13": isbn13}).sort("review_date_time", -1)
-    
-    # Convert cursor to list and handle datetime formatting
     review_list = []
-    for r in reviews_cursor:
-        r["_id"] = str(r["_id"])  # convert ObjectId to string if needed
-        review_list.append(r)
-    return review_list
+    
+    for r in reviews.find({"ISBN13": isbn13}).sort("review_date_time", -1):
+        r["_id"] = str(r["_id"])
 
-from bson.objectid import ObjectId
+        # Default fallback
+        r["username"] = "Unknown User"
+
+        try:
+            user_id = r.get("User_id")
+            if user_id:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT username FROM user WHERE user_id = %s", (user_id,))
+                result = cursor.fetchone()
+                if result:
+                    r["username"] = result[0]
+                cursor.close()
+                conn.close()
+        except:
+            pass
+
+        review_list.append(r)
+
+    return review_list
 
 def get_review_by_id(review_id):
     try:

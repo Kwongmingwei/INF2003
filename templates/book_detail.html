@@ -16,7 +16,7 @@
       <ul>
       {% for review in reviews %}
         <li>
-          <strong>{{ review.User_id }}</strong> rated it {{ review.rating }} stars<br>
+          <strong>{{ review.username }}</strong> rated it {{ review.rating }} stars<br>
           <em>{{ review.review_summary }}</em><br>
           {% if session.username == review.User_id %}
     <a href="{{ url_for('edit_review', book_id=book_id, review_id=review._id) }}">✏️ Edit</a>
