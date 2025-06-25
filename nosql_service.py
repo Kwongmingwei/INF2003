@@ -29,7 +29,7 @@ def create_review(user_id, isbn13, rating, summary, text):
 
 def get_reviews_by_isbn(isbn13):
     review_list = []
-    
+
     for r in reviews.find({"ISBN13": isbn13}).sort("review_date_time", -1):
         r["_id"] = str(r["_id"])
 
@@ -75,38 +75,43 @@ def delete_review(review_id):
     except Exception:
         return None
 
-#calculate total rating for a specific ISBN13
-def get_total_rating_by_isbn13(isbn13):
-    query = [
-        { "$match": { "ISBN13": isbn13 } },
-        {
-            "$group": {
-                "_id": None,
-                "total_rating": { "$sum": "$rating" }
-            }
-        }
+
+def get_aggregate_rating_for_work(list_of_isbns: list):
+    """
+    Performs a single, efficient aggregation to get the total rating sum and
+    review count for all reviews associated with a list of ISBNs.
+    Ignores reviews where the rating is not a number/null.
+
+    Args:
+        list_of_isbns: A list of ISBN13 strings.
+
+    Returns:
+        A dictionary with 'total_rating_sum' and 'total_review_count',
+        or None if no valid reviews are found.
+    """
+    if not list_of_isbns:
+        return None
+
+    pipeline = [
+        # Match documents for the correct ISBNs AND where rating is a number
+        {"$match": {
+            "ISBN13": {"$in": list_of_isbns},
+            "rating": {"$type": "number"}
+        }},
+        # Group all valid documents into a single result
+        {"$group": {
+            "_id": None,
+            "total_rating_sum": {"$sum": "$rating"},
+            "total_review_count": {"$sum": 1}
+        }}
     ]
-    result = list(reviews.aggregate(query))
-    return result[0]["total_rating"] if result else 0
 
-#count reviews for a specific ISBN13
-def get_review_count_by_isbn13(isbn13):
-    query = [
-        { "$match": { "ISBN13": isbn13 } },
-        {
-            "$group": {
-                "_id": None,
-                "review_count": { "$sum": 1 }
-            }
-        }
-    ]
-
-    # Print all matching review records (to check)
-    matching_reviews = reviews.find({ "ISBN13": isbn13 })
-    
-    print(f"\nBook Reviews for ISBN13: {isbn13}")
-    for r in matching_reviews:
-        print(f"- Review Summary: {r.get('review_summary')} | Rating: {r.get('rating')}")
-
-    result = list(reviews.aggregate(query))
-    return result[0]["review_count"] if result else 0
+    try:
+        result = list(reviews.aggregate(pipeline))
+        if not result:
+            return None
+        # Return the first (and only) document from the result list
+        return result[0]
+    except Exception as e:
+        print(f"An error occurred during aggregation: {e}")
+        return None

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, CHAR
+from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, CHAR, Numeric
 from sqlalchemy.orm import relationship, declarative_base
 import re
 from isbnlib import to_isbn13, is_isbn10, is_isbn13
@@ -7,10 +7,10 @@ from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 
-# engine = create_engine("mysql+pymysql://root:password@localhost/book_review")
-# Session = sessionmaker(bind=engine)
-# session = Session()
-# Base.metadata.create_all(engine)
+engine = create_engine("mysql+pymysql://root:password@localhost/book_review")
+Session = sessionmaker(bind=engine)
+session = Session()
+Base.metadata.create_all(engine)
 
 class Author(Base):
     __tablename__ = 'author'
@@ -29,6 +29,7 @@ class BookWork(Base):
     work_id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(150), nullable=False)
     description = Column(Text)
+    avg_rating = Column(Numeric(3, 2))
 
     editions = relationship("BookEdition", back_populates="work")
     authors = relationship("AuthorWork", back_populates="work")
