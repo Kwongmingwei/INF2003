@@ -8,6 +8,9 @@ client = MongoClient("mongodb://localhost:27017")
 db = client["reviews_db"]
 reviews = db["reviews"]
 
+# compund key to ensure uniquness
+reviews.create_index([("user_id", 1), ("ISBN13", 1)], unique=True)
+
 def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
@@ -25,7 +28,12 @@ def create_review(user_id, isbn13, rating, summary, text):
         "review_text": text,
         "review_date_time": datetime.now()
     }
-    return reviews.insert_one(review)
+    try:
+        return reviews.insert_one(review)
+    except DuplicateKeyError:
+         print("User has already reviewed this book.")
+         return None
+
 
 def get_reviews_by_isbn(isbn13):
     review_list = []
