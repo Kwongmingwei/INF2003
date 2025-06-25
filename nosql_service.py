@@ -74,3 +74,39 @@ def delete_review(review_id):
         return reviews.delete_one({"_id": ObjectId(review_id)})
     except Exception:
         return None
+
+#calculate total rating for a specific ISBN13
+def get_total_rating_by_isbn13(isbn13):
+    query = [
+        { "$match": { "ISBN13": isbn13 } },
+        {
+            "$group": {
+                "_id": None,
+                "total_rating": { "$sum": "$rating" }
+            }
+        }
+    ]
+    result = list(reviews.aggregate(query))
+    return result[0]["total_rating"] if result else 0
+
+#count reviews for a specific ISBN13
+def get_review_count_by_isbn13(isbn13):
+    query = [
+        { "$match": { "ISBN13": isbn13 } },
+        {
+            "$group": {
+                "_id": None,
+                "review_count": { "$sum": 1 }
+            }
+        }
+    ]
+
+    # Print all matching review records (to check)
+    matching_reviews = reviews.find({ "ISBN13": isbn13 })
+    
+    print(f"\nBook Reviews for ISBN13: {isbn13}")
+    for r in matching_reviews:
+        print(f"- Review Summary: {r.get('review_summary')} | Rating: {r.get('rating')}")
+
+    result = list(reviews.aggregate(query))
+    return result[0]["review_count"] if result else 0
