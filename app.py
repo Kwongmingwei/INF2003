@@ -1,12 +1,11 @@
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import date
-from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review, \
-    get_aggregate_rating_for_work
+from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review
 import click
 import logging
 from tqdm import tqdm
-from sql_service import Session, BookWork, BookEdition
+from sql_service import Session, BookWork, get_work_id_for_isbn, update_work_rating, _calculate_and_stage_update
 
 
 def get_db_connection():
@@ -204,6 +203,12 @@ def submit_review(book_id):
     # Insert into MongoDB
     create_review(username, isbn13, rating, comment, comment)
 
+    # Trigger update_work_rating so that avg_rating in mariadb will be updated
+    with Session() as db_session:
+        work_id = get_work_id_for_isbn(db_session, isbn13)
+    if work_id:
+        update_work_rating(work_id)
+
     return redirect(url_for('book_detail', book_id=book_id))
 
 
@@ -290,6 +295,14 @@ def edit_review(book_id, review_id):
         new_rating = int(request.form['rating'])
 
         update_review(review_id, new_summary, new_rating)
+
+        # Trigger update_work_rating so that avg_rating in mariadb will be updated
+        isbn13 = review.get("ISBN13")
+        with Session() as db_session:
+            work_id = get_work_id_for_isbn(db_session, isbn13)
+        if work_id:
+            update_work_rating(work_id)
+
         return redirect(url_for('book_detail', book_id=book_id))
 
     return render_template('edit_review.html', review=review, book_id=book_id)
@@ -304,47 +317,25 @@ def delete_review_route(book_id, review_id):
     if not review:
         return "Review not found", 404
 
-    if review['User_id'] != session['username']:
+    if review['User_id'] != session['user_id']:
         return "Forbidden", 403
 
+    # Get the necessary info before deleting the review
+    isbn13 = review.get("ISBN13")
+    with Session() as db_session:
+        work_id = get_work_id_for_isbn(db_session, isbn13)
+
+    # Delete review from MongoDB
     delete_review(review_id)
+
+    # Trigger update_work_rating so that avg_rating in mariadb will be updated
+    if work_id:
+        update_work_rating(work_id)
+
     return redirect(url_for('book_detail', book_id=book_id))
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-
-def _calculate_and_stage_update(work_id: int, db_session) -> bool:
-    """
-    Calculates rating by calling get_aggregate_rating_for_work from nosql_service
-    and stages the change in the SQLAlchemy session WITHOUT committing.
-    """
-    work_to_update = db_session.query(BookWork).get(work_id)
-    if not work_to_update:
-        logging.error(f"No book_work found with work_id: {work_id}")
-        return False
-
-    # Get list of all ISBN13 strings associated with work_id
-    isbn_query_result = db_session.query(BookEdition.isbn13).filter_by(work_id=work_id).all()
-    list_of_isbns = [item[0] for item in isbn_query_result]
-
-    # Call the dedicated service function to get the aggregate stats
-    stats = get_aggregate_rating_for_work(list_of_isbns)
-
-    if not stats:
-        # This handles cases where the work has no ISBNs or no valid reviews
-        work_to_update.avg_rating = None
-        return True  # Correctly determined there is no rating.
-
-    total_sum = stats.get('total_rating_sum', 0)
-    total_count = stats.get('total_review_count', 0)
-
-    if total_count > 0:
-        work_to_update.avg_rating = total_sum / total_count
-    else:
-        work_to_update.avg_rating = None
-
-    return True
 
 
 @app.cli.command("populate-ratings")
@@ -362,7 +353,7 @@ def populate_ratings_command(batch_size):
         avg_rating_update_session.close()
         return
 
-    work_id_list = [item[0] for item in work_ids_to_process]
+    work_id_list: list[int] = [item[0] for item in work_ids_to_process]
     progress_bar = tqdm(work_id_list, desc="Populating Ratings")
 
     success_count = 0
