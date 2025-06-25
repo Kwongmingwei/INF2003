@@ -9,7 +9,7 @@ db = client["reviews_db"]
 reviews = db["reviews"]
 
 # compund key to ensure uniquness
-reviews.create_index([("user_id", 1), ("ISBN13", 1)], unique=True)
+reviews.create_index([("User_id", 1), ("ISBN13", 1)], unique=True)
 
 def get_db_connection():
     return mysql.connector.connect(
