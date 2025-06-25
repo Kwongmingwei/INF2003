@@ -10,7 +10,8 @@ from nosql_service import get_aggregate_rating_for_work
 
 Base = declarative_base()
 
-engine = create_engine("mysql+pymysql://root:password@localhost/book_review")
+#engine = create_engine("mysql+pymysql://{changethis}:{passwordofyourthing}@localhost/book_review")
+engine = create_engine("mysql+pymysql://root:mingwei@localhost/book_review")
 Session = sessionmaker(bind=engine)
 session = Session()
 Base.metadata.create_all(engine)
