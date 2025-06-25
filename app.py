@@ -187,12 +187,12 @@ def book_detail(book_id):
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])
 def submit_review(book_id):
-    if 'username' not in session:
+    if 'user_id' not in session:
         return "Unauthorized", 401
 
     comment = request.form['comment']
     rating = int(request.form['rating'])
-    username = session['username']
+    user_id = session['user_id']
 
     book = fetch_book_details(book_id)
     isbn13 = book.get("isbn13")
@@ -201,7 +201,7 @@ def submit_review(book_id):
         return "Cannot add review: ISBN13 not found", 400
 
     # Insert into MongoDB
-    create_review(username, isbn13, rating, comment, comment)
+    create_review(user_id, isbn13, rating, comment, comment)
 
     # Trigger update_work_rating so that avg_rating in mariadb will be updated
     with Session() as db_session:
