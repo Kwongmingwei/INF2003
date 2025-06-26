@@ -13,24 +13,29 @@
     <h3>Reviews</h3>
 
     {% if reviews %}
-      <ul>
-      {% for review in reviews %}
-        <li>
-          <strong>{{ review.username }}</strong> rated it {{ review.rating }} stars<br>
-          <em>{{ review.review_summary }}</em><br>
-          {% if session.username == review.User_id %}
-    <a href="{{ url_for('edit_review', book_id=book_id, review_id=review._id) }}">✏️ Edit</a>
+      <div class="review-section">
+        {% for review in reviews %}
+          <div class="review-card">
+            <p><strong>{{ review.username }}</strong> rated it <strong>{{ review.rating }}⭐</strong></p>
+            <p><em>{{ review.review_summary }}</em></p>
 
-    <form method="POST" action="{{ url_for('delete_review_route', book_id=book_id, review_id=review._id) }}" style="display:inline;">
-        <button type="submit" onclick="return confirm('Are you sure you want to delete this review?')">🗑️ Delete</button>
-    </form>
-{% endif %}
-        </li>
-      {% endfor %}
-      </ul>
+            {% if session.username == review.User_id %}
+              <div style="margin-top: 10px;">
+                <a href="{{ url_for('edit_review', book_id=book_id, review_id=review._id) }}" class="back-button">✏️ Edit</a>
+
+                <form method="POST" action="{{ url_for('delete_review_route', book_id=book_id, review_id=review._id) }}" style="display:inline;">
+                  <button type="submit" onclick="return confirm('Are you sure you want to delete this review?')">🗑️ Delete</button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
     {% else %}
       <p>No reviews yet.</p>
     {% endif %}
+    
+
 
     {% if session.get("username") %}
       <form method="post" action="{{ url_for('submit_review', book_id=book_id) }}">
@@ -49,6 +54,5 @@
     {% else %}
       <p><a href="{{ url_for('login') }}">Login to leave a review</a></p>
     {% endif %}
-
   </div>
 {% endblock %}

@@ -56,6 +56,7 @@ def get_reviews_by_isbn(isbn13):
                     r["username"] = result[0]
                 cursor.close()
                 conn.close()
+                print(r)
         except:
             pass
 
