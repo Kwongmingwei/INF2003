@@ -21,6 +21,9 @@ def get_db_connection():
 app = Flask(__name__)
 app.secret_key = 'KEY'
 
+app.permanent_session_lifetime = 0
+app.config['SESSION_PERMANENT'] = False
+
 users = {
     "john": {"password": "1234"},
     "alice": {"password": "abcd"}
@@ -87,7 +90,7 @@ def fetch_books_from_db(query=None, field="title", genres=None):
     cursor = conn.cursor(dictionary=True)
 
     sql = """
-        SELECT bw.work_id, bw.title, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        SELECT bw.work_id, bw.title,bw.avg_rating, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
         FROM book_work bw
         LEFT JOIN author_work aw ON bw.work_id = aw.work_id
         LEFT JOIN author a ON a.author_id = aw.author_id
@@ -114,7 +117,7 @@ def fetch_books_from_db(query=None, field="title", genres=None):
     if conditions:
         sql += " WHERE " + " AND ".join(conditions)
 
-    sql += " GROUP BY bw.work_id LIMIT 1000"
+    sql += " GROUP BY bw.work_id ORDER BY bw.avg_rating DESC, bw.work_id LIMIT 1000"
 
     '''
     if not query:
