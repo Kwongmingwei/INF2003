@@ -1,0 +1,19 @@
+# Flask and web framework dependencies
+Flask
+
+# Database dependencies
+mysql-connector-python
+
+# SQLAlchemy (for improved implementation)
+SQLAlchemy
+PyMySQL  # Pure Python MySQL driver for SQLAlchemy
+
+# MongoDB dependencies
+pymongo
+
+# ISBN processing
+isbnlib
+
+# CLI and progress bar
+click
+tqdm
