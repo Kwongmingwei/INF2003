@@ -1,7 +1,7 @@
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import date
-from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review
+from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review,reviews
 import click
 import logging
 from tqdm import tqdm
@@ -200,8 +200,17 @@ def submit_review(book_id):
     if not isbn13:
         return "Cannot add review: ISBN13 not found", 400
 
-    # Insert into MongoDB
-    create_review(user_id, isbn13, rating, comment, comment)
+    existing = reviews.find_one({
+        "User_id": user_id,
+        "ISBN13": isbn13
+    })
+
+    if existing:
+        print("error duplicate !!!!!!!!!!!!!!!!!")
+        return redirect(url_for("book_detail", book_id=book_id, from_review="1"))
+    else:
+        # Insert into MongoDB
+        create_review(user_id, isbn13, rating, comment, comment)
 
     # Trigger update_work_rating so that avg_rating in mariadb will be updated
     with Session() as db_session:
