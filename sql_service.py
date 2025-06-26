@@ -11,7 +11,7 @@ from nosql_service import get_aggregate_rating_for_work
 Base = declarative_base()
 
 #engine = create_engine("mysql+pymysql://{changethis}:{passwordofyourthing}@localhost/book_review")
-engine = create_engine("mysql+pymysql://root:mingwei@localhost/book_review")
+engine = create_engine("mysql+pymysql://dev:password@localhost/book_review")
 Session = sessionmaker(bind=engine)
 session = Session()
 Base.metadata.create_all(engine)
@@ -139,9 +139,8 @@ def normalize_isbn(isbn_raw):
 
 def _calculate_and_stage_update(work_id: int, db_session) -> bool:
     """
-    (Internal function) Calculates rating by calling the NoSQL service
+    Calculates rating by calling the get_aggregate_rating_for_work from nosql_service.py
     and stages the change in the SQLAlchemy session WITHOUT committing.
-    This function's logic is centralized here.
     """
     work_to_update = db_session.query(BookWork).get(work_id)
     if not work_to_update:
@@ -152,7 +151,7 @@ def _calculate_and_stage_update(work_id: int, db_session) -> bool:
     isbn_query_result = db_session.query(BookEdition.isbn13).filter_by(work_id=work_id).all()
     list_of_isbns = [item[0] for item in isbn_query_result]
 
-    # Call the dedicated service function to get the aggregate stats
+    # Call get_aggregate_rating_for_work to get the aggregate stats
     stats = get_aggregate_rating_for_work(list_of_isbns)
 
     if not stats:

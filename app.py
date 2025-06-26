@@ -11,8 +11,8 @@ from sql_service import Session, BookWork, get_work_id_for_isbn, update_work_rat
 def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
-        user='root',  # change this
-        password='zenden',  # change this
+        user='dev',  # change this
+        password='password',  # change this
         database='book_review',
         charset='utf8mb4'
     )
@@ -258,6 +258,7 @@ def register():
         conn.close()
 
         session['username'] = username
+        # TODO SESSION DOES NOT HAVE USER ID AFTER REGISTER
         return redirect(url_for('index'))
 
     return render_template('register.html')

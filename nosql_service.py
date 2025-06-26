@@ -15,7 +15,7 @@ reviews = db["reviews"]
 def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
-        user='root',
+        user='dev',
         password='password',
         database='book_review'
     )
