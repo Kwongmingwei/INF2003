@@ -3,19 +3,20 @@ from pymongo import MongoClient
 from datetime import datetime
 from bson.objectid import ObjectId
 import mysql.connector
+from pymongo.errors import DuplicateKeyError
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["reviews_db"]
 reviews = db["reviews"]
 
 # compund key to ensure uniquness
-reviews.create_index([("User_id", 1), ("ISBN13", 1)], unique=True)
+# reviews.create_index([("User_id", 1), ("ISBN13", 1)], unique=True)
 
 def get_db_connection():
     return mysql.connector.connect(
         host='localhost',
         user='root',
-        password='zenden',
+        password='password',
         database='book_review'
     )
 
