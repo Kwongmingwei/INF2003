@@ -23,10 +23,12 @@
         Advanced Filters
       </button>
       <button type="submit" class="search-button">Search</button>
-      
     </div>
 
     <input type="hidden" name="genres" id="hidden-genres" value="" />
+    <input type="hidden" name="year_from" id="hidden-year-from" value="" />
+    <input type="hidden" name="year_to" id="hidden-year-to" value="" />
+
     <input
       type="hidden"
       name="searchType"
@@ -78,6 +80,8 @@
             id="year-from"
             placeholder="From"
             class="year-input"
+            min="1500"
+            max="2026"
           />
           <span>to</span>
           <input
@@ -85,6 +89,8 @@
             id="year-to"
             placeholder="To"
             class="year-input"
+            min="1500"
+            max="2026"
           />
         </div>
       </div>
@@ -193,6 +199,8 @@
     const yearTo = document.getElementById("year-to").value;
 
     document.getElementById("hidden-genres").value = selectedGenres.join(",");
+    document.getElementById("hidden-year-from").value = yearFrom;
+    document.getElementById("hidden-year-to").value = yearTo;
     document.getElementById("hidden-search-type").value = "all";
 
     updateActiveFiltersDisplay();
@@ -218,6 +226,19 @@
       hasFilters = true;
     }
 
+    const yearFrom = document.getElementById("year-from").value;
+    const yearTo = document.getElementById("year-to").value;
+    if (yearFrom || yearTo) {
+      const yearTag = document.createElement("span");
+      yearTag.className = "filter-tag";
+      yearTag.textContent = `Year: ${yearFrom ? yearFrom : "Any"} - ${
+        yearTo ? yearTo : "Any"
+      }`;
+      filterTags.appendChild(yearTag);
+      hasFilters = true;
+    }
+
+
     const searchType = "all";
     if (searchType !== "all") {
       const typeTag = document.createElement("span");
@@ -239,6 +260,8 @@
     updateActiveFiltersDisplay();
 
     document.getElementById("hidden-genres").value = "";
+    document.getElementById("hidden-year-from").value = "";
+    document.getElementById("hidden-year-to").value = "";
     document.getElementById("hidden-search-type").value = "all";
 
     document.querySelector(".search-form").dispatchEvent(new Event("submit"));
@@ -258,7 +281,7 @@
     }
   });
 
-  
+
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
       closeFiltersModal();

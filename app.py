@@ -85,17 +85,18 @@ def db_test():
         return f"❌ Database connection failed: {e}"
 
 
-def fetch_books_from_db(query=None, field="title", genres=None):
+def fetch_books_from_db(query=None, field="title", genres=None, year_from =None, year_to=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
     sql = """
-        SELECT bw.work_id, bw.title,bw.avg_rating, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        SELECT bw.work_id, bw.title,bw.avg_rating, be.publish_year, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
         FROM book_work bw
         LEFT JOIN author_work aw ON bw.work_id = aw.work_id
         LEFT JOIN author a ON a.author_id = aw.author_id
         LEFT JOIN category c ON c.work_id = bw.work_id
         LEFT JOIN genre g ON g.genre_id = c.genre_id
+        LEFT JOIN book_edition be ON be.work_id = bw.work_id
     """
 
     conditions = []
@@ -113,11 +114,19 @@ def fetch_books_from_db(query=None, field="title", genres=None):
         genre_placeholders = ','.join(['%s'] * len(genres))
         conditions.append(f"g.genre_name IN ({genre_placeholders})")
         params.extend(genres)
+        
+    if year_from:
+        conditions.append("be.publish_year >= %s")
+        params.append(year_from)
+    
+    if year_to:
+        conditions.append("be.publish_year <= %s")
+        params.append(year_to)
 
     if conditions:
         sql += " WHERE " + " AND ".join(conditions)
 
-    sql += " GROUP BY bw.work_id ORDER BY bw.avg_rating DESC, bw.work_id LIMIT 1000"
+    sql += " GROUP BY bw.work_id ORDER BY bw.avg_rating DESC, bw.title ASC LIMIT 1000"
 
     '''
     if not query:
@@ -290,7 +299,13 @@ def search():
     genres_str = request.args.get("genres", "")
     genre_list = genres_str.split(",") if genres_str else []
 
-    books = fetch_books_from_db(query if query else None, field, genre_list)
+    year_from = request.args.get("year_from", "").strip()
+    year_to = request.args.get("year_to", "").strip()
+    
+    year_from = int(year_from) if year_from else None
+    year_to = int(year_to) if year_to else None
+    
+    books = fetch_books_from_db(query if query else None, field, genre_list,year_from, year_to)
 
     if request.headers.get("HX-Request"):
         return render_template("partials/book_list.html", books=books)
