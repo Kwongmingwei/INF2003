@@ -1,6 +1,6 @@
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
-from datetime import date
+from datetime import date, timedelta
 from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review,reviews
 import click
 import logging
@@ -21,7 +21,7 @@ def get_db_connection():
 app = Flask(__name__)
 app.secret_key = 'KEY'
 
-app.permanent_session_lifetime = 0
+app.permanent_session_lifetime = timedelta(minutes=30)
 app.config['SESSION_PERMANENT'] = False
 
 users = {
@@ -312,40 +312,43 @@ def search():
     return render_template("index.html", books=books, all_genres=fetch_all_genres(), top_genres=fetch_top_genres())
 
 
-@app.route('/book/<int:book_id>/review/edit/<review_id>', methods=['GET', 'POST'])
+@app.route('/book/<int:book_id>/review/edit/<review_id>', methods=['POST'])
 def edit_review(book_id, review_id):
-    review = get_review_by_id(review_id)
-    if not review:
-        return "Review not found", 404
-
-    if request.method == 'POST':
-        new_summary = request.form['summary']
-        new_rating = int(request.form['rating'])
-
-        update_review(review_id, new_summary, new_rating)
-
-        # Trigger update_work_rating so that avg_rating in mariadb will be updated
-        isbn13 = review.get("ISBN13")
-        with Session() as db_session:
-            work_id = get_work_id_for_isbn(db_session, isbn13)
-        if work_id:
-            update_work_rating(work_id)
-
-        return redirect(url_for('book_detail', book_id=book_id))
-
-    return render_template('edit_review.html', review=review, book_id=book_id)
-
-
-@app.route('/book/<int:book_id>/review/delete/<review_id>', methods=['POST'])
-def delete_review_route(book_id, review_id):
-    if 'username' not in session:
+    if 'user_id' not in session:
         return "Unauthorized", 401
 
     review = get_review_by_id(review_id)
     if not review:
         return "Review not found", 404
 
-    if review['User_id'] != session['user_id']:
+    # Security check: Only the original author can edit
+    if str(review.get("User_id")) != str(session['user_id']):
+        return "Forbidden", 403
+
+    new_summary = request.form['summary']
+    new_rating = int(request.form['rating'])
+
+    update_review(review_id, new_summary, new_rating)
+
+    isbn13 = review.get("ISBN13")
+    with Session() as db_session:
+        work_id = get_work_id_for_isbn(db_session, isbn13)
+    if work_id:
+        update_work_rating(work_id)
+
+    return redirect(url_for('book_detail', book_id=book_id))
+
+@app.route('/book/<int:book_id>/review/delete/<review_id>', methods=['POST'])
+def delete_review_route(book_id, review_id):
+    if 'user_id' not in session:
+        return "Unauthorized", 401
+
+    review = get_review_by_id(review_id)
+    if not review:
+        return "Review not found", 404
+
+    # Ensure only the owner can delete
+    if str(review.get("User_id")) != str(session['user_id']):
         return "Forbidden", 403
 
     # Get the necessary info before deleting the review
@@ -361,7 +364,6 @@ def delete_review_route(book_id, review_id):
         update_work_rating(work_id)
 
     return redirect(url_for('book_detail', book_id=book_id))
-
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
