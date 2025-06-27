@@ -91,53 +91,6 @@ class Category(Base):
     genre = relationship("Genre", back_populates="categories")
     work = relationship("BookWork", back_populates="categories")
 
-
-def get_books_by_author_name(session, name_substring: str):
-    """
-    Return a list of BookWork objects written by authors whose name contains the given substring.
-    """
-    return (
-        session.query(BookWork)
-        .join(AuthorWork, BookWork.work_id == AuthorWork.work_id)
-        .join(Author, AuthorWork.author_id == Author.author_id)
-        .filter(Author.name.like(f"%{name_substring}%"))
-        .all()
-)
-
-def get_books_by_genre_name(session, name_substring: str):
-    """
-    Return a list of BookWork objects written by authors whose name contains the given substring.
-    """
-    return (
-        session.query(BookWork)
-        .join(Category, BookWork.work_id == Category.work_id)
-        .join(Genre, Category.genre_id == Genre.genre_id)
-        .filter(Genre.genre_name.like(f"%{name_substring}%"))
-        .all()
-)
-
-def get_books_by_title_name(session, name_substring: str):
-    """
-    Return a list of BookWork objects written by authors whose name contains the given substring.
-    """
-    return (
-        session.query(BookWork)
-        .filter(BookWork.title.like(f"%{name_substring}%"))
-        .all()
-)
-
-def get_book_title_by_isbn(session, number: str):
-    """
-    Return a list of book title by isbn10 or isbn13.
-    """
-    isbn = normalize_isbn(number)
-    return (
-        session.query(BookWork)
-        .join(BookEdition, BookWork.work_id == BookEdition.work_id)
-        .filter(BookEdition.isbn13 == isbn)
-        .all()
-)
-
 def normalize_isbn(isbn_raw):
     """ Normalize an ISBN string to ISBN-13 format."""
     isbn = re.sub(r'[^0-9X]', '', isbn_raw.upper())  # remove dashes/spaces
@@ -148,46 +101,53 @@ def normalize_isbn(isbn_raw):
     else:
         return None
 
-def _calculate_and_stage_update(work_id: int, db_session) -> bool:
+def _calculate_and_stage_update(work_id: int, conn, cursor) -> bool:
     """
     Calculates rating by calling the get_aggregate_rating_for_work from nosql_service.py
     and stages the change in the SQLAlchemy session WITHOUT committing.
     """
-    work_to_update = db_session.query(BookWork).get(work_id)
+    cursor.execute("SELECT * FROM book_work WHERE work_id = %s", (work_id,))
+    work_to_update = cursor.fetchone()
+
     if not work_to_update:
         logging.error(f"No book_work found with work_id: {work_id}")
         return False
 
     # Get list of all ISBN13 strings associated with work_id
-    isbn_query_result = db_session.query(BookEdition.isbn13).filter_by(work_id=work_id).all()
-    list_of_isbns = [item[0] for item in isbn_query_result]
+    cursor.execute("SELECT isbn13 FROM book_edition WHERE work_id = %s", (work_id,))
+    rows = cursor.fetchall()
+    list_of_isbns = [row[0] for row in rows]
 
     # Call get_aggregate_rating_for_work to get the aggregate stats
     stats = get_aggregate_rating_for_work(list_of_isbns)
 
     if not stats:
-        work_to_update.avg_rating = None
+        cursor.execute("UPDATE book_work SET avg_rating = NULL WHERE work_id = %s", (work_id,))
         return True # Correctly determined there is no rating.
 
     total_sum = stats.get('total_rating_sum', 0)
     total_count = stats.get('total_review_count', 0)
+    avg_rating = total_sum / total_count
 
     if total_count > 0:
-        work_to_update.avg_rating = total_sum / total_count
-    else:
-        work_to_update.avg_rating = None
-
+        cursor.execute("UPDATE book_work SET avg_rating = %s WHERE work_id = %s", (avg_rating, work_id,))
     return True
 
 
-def get_work_id_for_isbn(db_session, isbn13: str):
+def get_work_id_for_isbn(isbn13: str):
     """
     Finds the work_id associated with a given ISBN13.
     """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     if not isbn13:
         return None
-    result = db_session.query(BookEdition.work_id).filter_by(isbn13=isbn13).first()
-    return result[0] if result else None
+    cursor.execute("SELECT bw.work_id FROM book_work bw JOIN book_edition be ON bw.work_id=be.work_id WHERE be.isbn13 = %s", (isbn13,))
+    result = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+    return result if result else None
 
 
 def update_work_rating(work_id: int):
@@ -199,19 +159,23 @@ def update_work_rating(work_id: int):
         logging.warning("update_work_rating called with no work_id.")
         return
 
-    # Use a new session to ensure the operation is self-contained.
-    db_session = Session()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    conn.start_transaction()
+    
     try:
-        if _calculate_and_stage_update(work_id, db_session):
-            db_session.commit()
+        if _calculate_and_stage_update(work_id, conn, cursor):
+            conn.commit()
             logging.info(f"Successfully updated avg_rating for work_id: {work_id}")
         else:
-            db_session.rollback()
+            conn.rollback()
+            logging.info(f"No rating update applied for work_id: {work_id}")
     except Exception as e:
         logging.error(f"Failed to update rating for work_id {work_id}: {e}")
-        db_session.rollback()
+        conn.rollback()
     finally:
-        db_session.close()
+        cursor.close()
+        conn.close()
 
 def fetch_all_genres():
     conn = get_db_connection()

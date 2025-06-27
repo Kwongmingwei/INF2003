@@ -91,8 +91,7 @@ def submit_review(book_id):
         create_review(user_id, isbn13, rating, summary, text)
 
     # Trigger update_work_rating so that avg_rating in mariadb will be updated
-    with Session() as db_session:
-        work_id = get_work_id_for_isbn(db_session, isbn13)
+    work_id = get_work_id_for_isbn(isbn13)
     if work_id:
         update_work_rating(work_id)
 
@@ -198,8 +197,7 @@ def edit_review(book_id, review_id):
     update_review(review_id, new_summary, new_text, new_rating)
 
     isbn13 = review.get("ISBN13")
-    with Session() as db_session:
-        work_id = get_work_id_for_isbn(db_session, isbn13)
+    work_id = get_work_id_for_isbn(isbn13)
     if work_id:
         update_work_rating(work_id)
 
@@ -220,8 +218,7 @@ def delete_review_route(book_id, review_id):
 
     # Get the necessary info before deleting the review
     isbn13 = review.get("ISBN13")
-    with Session() as db_session:
-        work_id = get_work_id_for_isbn(db_session, isbn13)
+    work_id = get_work_id_for_isbn(isbn13)
 
     # Delete review from MongoDB
     delete_review(review_id)
@@ -241,47 +238,50 @@ def populate_ratings_command(batch_size):
     """
     Calculates and populates the avg_rating for all book_works in the database.
     """
-    avg_rating_update_session = Session()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    work_ids_to_process = avg_rating_update_session.query(BookWork.work_id).all()
+    # Fetch all work_ids
+    cursor.execute("SELECT work_id FROM book_work")
+    rows = cursor.fetchall()
+    work_id_list = [row[0] for row in rows]
 
-    if not work_ids_to_process:
+    if not work_id_list:
         print("No book works found in the database.")
-        avg_rating_update_session.close()
+        cursor.close()
+        conn.close()
         return
-
-    work_id_list: list[int] = [item[0] for item in work_ids_to_process]
-    progress_bar = tqdm(work_id_list, desc="Populating Ratings")
 
     success_count = 0
     fail_count = 0
+    progress_bar = tqdm(work_id_list, desc="Populating Ratings")
 
     for i, work_id in enumerate(progress_bar):
         try:
-            if _calculate_and_stage_update(work_id, avg_rating_update_session):
+            if _calculate_and_stage_update(work_id, conn, cursor):
                 success_count += 1
             else:
                 fail_count += 1
         except Exception as e:
-            logging.error(f"A critical error occurred for work_id {work_id}: {e}")
+            logging.error(f"Critical error on work_id {work_id}: {e}")
+            conn.rollback()
             fail_count += 1
-            avg_rating_update_session.rollback()  # Rollback on critical error for an item
 
-        # Commit every batches_size, default is 500
         if (i + 1) % batch_size == 0 or (i + 1) == len(work_id_list):
             try:
                 logging.info(f"Committing batch of {batch_size} items (up to item #{i + 1})...")
-                avg_rating_update_session.commit()
+                conn.commit()
                 logging.info("Batch committed successfully.")
             except Exception as e:
                 logging.error(f"Failed to commit batch: {e}")
-                avg_rating_update_session.rollback()
+                conn.rollback()
 
     print("\n--- Initialization Complete ---")
     print(f"Successfully processed: {success_count}")
     print(f"Failed items: {fail_count}")
 
-    avg_rating_update_session.close()
+    cursor.close()
+    conn.close()
 
 
 if __name__ == '__main__':
