@@ -15,6 +15,26 @@
 
     <hr class="divider">
 
+    <div class="authors-works">
+      <h2>Works by {{ book.authors }}</h2>
+      {% if author_books %}
+        <div class="authors-works-grid">
+          {% for work in author_books[:3] %}
+            <div class="authors-work-card">
+              <a href="{{ url_for('book_detail', book_id=work.work_id) }}">
+                <img src="https://via.placeholder.com/100x140?text=Book" alt="Book Cover" class="authors-work-cover" />
+                <div class="authors-work-title">{{ work.title }}</div>
+              </a>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p>No other works found for this author.</p>
+      {% endif %}
+    </div>
+
+    <hr class="divider">
+
     {% set edit_id = request.args.get('edit') %}
 
     <div class="review-section">

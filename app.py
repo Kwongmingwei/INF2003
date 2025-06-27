@@ -5,7 +5,7 @@ from nosql_service import create_review, get_reviews_by_isbn, update_review, get
 import click
 import logging
 from tqdm import tqdm
-from sql_service import Session, BookWork, get_work_id_for_isbn, update_work_rating, _calculate_and_stage_update, get_db_connection, fetch_all_genres, fetch_top_genres, fetch_books_from_db, fetch_user_from_db, fetch_book_details
+from sql_service import Session, BookWork, get_work_id_for_isbn, update_work_rating, _calculate_and_stage_update, get_db_connection, fetch_all_genres, fetch_top_genres, fetch_books_from_db, fetch_user_from_db, fetch_book_details, fetch_top_books_by_authors
 
 app = Flask(__name__)
 app.secret_key = 'KEY'
@@ -42,13 +42,17 @@ def index():
 @app.route('/book/<int:book_id>')
 def book_detail(book_id):
     book = fetch_book_details(book_id)
+    author_ids = book.get("author_ids", [])
+    author_books = []
+    if author_ids:
+        author_books = fetch_top_books_by_authors(author_ids, limit=3)
     if not book:
         return "Book not found", 404
 
     isbn13 = book.get("isbn13")
     book_reviews = get_reviews_by_isbn(isbn13) if isbn13 else []
 
-    return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews)
+    return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,author_books=author_books)
 
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])

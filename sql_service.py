@@ -300,7 +300,8 @@ def fetch_book_details(work_id):
     cursor.execute("""
         SELECT bw.title, bw.description, be.isbn13,
                GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors,
-               GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+               GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres,
+               GROUP_CONCAT(DISTINCT a.author_id) AS author_ids
         FROM book_work bw
         LEFT JOIN author_work aw ON bw.work_id = aw.work_id
         LEFT JOIN author a ON a.author_id = aw.author_id
@@ -314,6 +315,10 @@ def fetch_book_details(work_id):
     book = cursor.fetchone()
     cursor.close()
     conn.close()
+    if book and book.get("author_ids"):
+        book["author_ids"] = [int(aid) for aid in book["author_ids"].split(",") if aid]
+    else:
+        book["author_ids"] = []
     return book
 
 
@@ -326,3 +331,25 @@ def fetch_user_from_db(username):
     cursor.close()
     conn.close()
     return user
+
+def fetch_top_books_by_authors(author_ids, limit=3):
+    """
+    Returns a list of the top books (by avg_rating DESC, then title ASC) for a list of author_ids.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    placeholders = ','.join(['%s'] * len(author_ids))
+    sql = f'''
+        SELECT UNIQUE bw.work_id, bw.title, bw.avg_rating
+        FROM book_work bw
+        JOIN author_work aw ON bw.work_id = aw.work_id
+        WHERE aw.author_id IN ({placeholders})
+        ORDER BY bw.avg_rating DESC, bw.title ASC
+        LIMIT %s
+    '''
+    params = list(author_ids) + [limit]
+    cursor.execute(sql, params)
+    books = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return books
