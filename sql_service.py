@@ -139,6 +139,7 @@ def get_book_title_by_isbn(session, number: str):
 )
 
 def normalize_isbn(isbn_raw):
+    """ Normalize an ISBN string to ISBN-13 format."""
     isbn = re.sub(r'[^0-9X]', '', isbn_raw.upper())  # remove dashes/spaces
     if is_isbn10(isbn):
         return to_isbn13(isbn)
@@ -238,7 +239,7 @@ def fetch_top_genres():
     conn.close()
     return genres
 
-def fetch_books_from_db(query=None, field="title", genres=None, year_from =None, year_to=None):
+def fetch_books_from_db(query=None, field="title", genres=None, year_from =None, year_to=None, isbn=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -262,6 +263,15 @@ def fetch_books_from_db(query=None, field="title", genres=None, year_from =None,
         elif field == "author":
             conditions.append("a.name LIKE %s")
             params.append(f"%{query}%")
+        elif field == "isbn":
+            normalized = normalize_isbn(query)
+            if normalized:
+                # If valid isbn13, search for it
+                conditions.append("be.isbn13 = %s")
+                params.append(normalized)
+            else:
+                # If invalid, return early
+                return []
 
     if genres:
         genre_placeholders = ','.join(['%s'] * len(genres))
@@ -285,6 +295,12 @@ def fetch_books_from_db(query=None, field="title", genres=None, year_from =None,
     if not query:
             sql += " LIMIT 1000"
     '''
+    # print("--- EXECUTING SQL ---")
+    # print(sql)
+    # print("--- WITH PARAMS ---")
+    # print(params)
+    # print("--- WITH CON ---")
+    # print(conditions)
 
     cursor.execute(sql, params)
     books = cursor.fetchall()
