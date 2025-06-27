@@ -314,7 +314,7 @@ def fetch_book_details(work_id):
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT bw.title, bw.description, be.isbn13,
+        SELECT bw.title, bw.description, be.isbn13,be.cover_id,
                GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors,
                GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres,
                GROUP_CONCAT(DISTINCT a.author_id) AS author_ids
@@ -356,10 +356,12 @@ def fetch_top_books_by_authors(author_ids, limit=3):
     cursor = conn.cursor(dictionary=True)
     placeholders = ','.join(['%s'] * len(author_ids))
     sql = f'''
-        SELECT UNIQUE bw.work_id, bw.title, bw.avg_rating
+        SELECT bw.work_id, bw.title, bw.avg_rating, MIN(be.cover_id) AS cover_id
         FROM book_work bw
         JOIN author_work aw ON bw.work_id = aw.work_id
+        LEFT JOIN book_edition be ON be.work_id = bw.work_id
         WHERE aw.author_id IN ({placeholders})
+        GROUP BY bw.work_id, bw.title, bw.avg_rating
         ORDER BY bw.avg_rating DESC, bw.title ASC
         LIMIT %s
     '''
