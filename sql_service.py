@@ -1,3 +1,4 @@
+import mysql.connector
 from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, CHAR, Numeric
 from sqlalchemy.orm import relationship, declarative_base
 import re
@@ -7,6 +8,15 @@ from sqlalchemy.orm import sessionmaker
 import logging
 
 from nosql_service import get_aggregate_rating_for_work
+
+def get_db_connection():
+    return mysql.connector.connect(
+        host='localhost',
+        user='dev',  # change this
+        password='password',  # change this
+        database='book_review',
+        charset='utf8mb4'
+    )
 
 Base = declarative_base()
 
@@ -201,3 +211,118 @@ def update_work_rating(work_id: int):
         db_session.rollback()
     finally:
         db_session.close()
+
+def fetch_all_genres():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT genre_name FROM genre ORDER BY genre_name")
+    genres = [row['genre_name'] for row in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return genres
+
+
+def fetch_top_genres():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT g.genre_name, COUNT(*) as count
+        FROM genre g
+        JOIN category c ON g.genre_id = c.genre_id
+        GROUP BY g.genre_name
+        ORDER BY count DESC
+        LIMIT 15;
+    """)
+    genres = [row['genre_name'] for row in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return genres
+
+def fetch_books_from_db(query=None, field="title", genres=None, year_from =None, year_to=None):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    sql = """
+        SELECT bw.work_id, bw.title,bw.avg_rating, be.publish_year, GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors, GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        FROM book_work bw
+        LEFT JOIN author_work aw ON bw.work_id = aw.work_id
+        LEFT JOIN author a ON a.author_id = aw.author_id
+        LEFT JOIN category c ON c.work_id = bw.work_id
+        LEFT JOIN genre g ON g.genre_id = c.genre_id
+        LEFT JOIN book_edition be ON be.work_id = bw.work_id
+    """
+
+    conditions = []
+    params = []
+
+    if query:
+        if field == "title":
+            conditions.append("bw.title LIKE %s")
+            params.append(f"%{query}%")
+        elif field == "author":
+            conditions.append("a.name LIKE %s")
+            params.append(f"%{query}%")
+
+    if genres:
+        genre_placeholders = ','.join(['%s'] * len(genres))
+        conditions.append(f"g.genre_name IN ({genre_placeholders})")
+        params.extend(genres)
+        
+    if year_from:
+        conditions.append("be.publish_year >= %s")
+        params.append(year_from)
+    
+    if year_to:
+        conditions.append("be.publish_year <= %s")
+        params.append(year_to)
+
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+
+    sql += " GROUP BY bw.work_id ORDER BY bw.avg_rating DESC, bw.title ASC LIMIT 1000"
+
+    '''
+    if not query:
+            sql += " LIMIT 1000"
+    '''
+
+    cursor.execute(sql, params)
+    books = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return books
+
+
+def fetch_book_details(work_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT bw.title, bw.description, be.isbn13,
+               GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors,
+               GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+        FROM book_work bw
+        LEFT JOIN author_work aw ON bw.work_id = aw.work_id
+        LEFT JOIN author a ON a.author_id = aw.author_id
+        LEFT JOIN category c ON c.work_id = bw.work_id
+        LEFT JOIN genre g ON g.genre_id = c.genre_id
+        LEFT JOIN book_edition be ON be.work_id = bw.work_id
+        WHERE bw.work_id = %s
+        GROUP BY bw.work_id
+    """, (work_id,))
+
+    book = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return book
+
+
+def fetch_user_from_db(username):
+    # Fetch user from database
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user WHERE username = %s", (username,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return user
