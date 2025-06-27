@@ -1,6 +1,6 @@
 import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review,reviews
 import click
 import logging
@@ -53,6 +53,13 @@ def book_detail(book_id):
     book_reviews = get_reviews_by_isbn(isbn13) if isbn13 else []
 
     return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,author_books=author_books)
+
+
+@app.template_filter('format_datetime')
+def format_datetime(value):
+    if isinstance(value, datetime):
+        return value.strftime("%d %b %Y %I:%M %p")
+    return value
 
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])

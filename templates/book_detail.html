@@ -60,8 +60,12 @@
         
         {% for review in reviews %}
           <div class="review-card">
-            <p><strong>{{ review.username }}</strong> rated it <strong>{{ review.rating }}⭐</strong></p>
-
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p style="margin: 0;">
+                    <strong>{{ review.username }}</strong> rated it <strong>{{ review.rating }}⭐</strong>
+                </p>
+                <small style="color: gray;">{{ review.review_date_time | format_datetime  }}</small>
+            </div>
             {% if session['user_id'] == review.User_id and edit_id == review._id %}
               <form method="POST" action="{{ url_for('edit_review', book_id=book_id, review_id=review._id) }}" class="edit-review-form">
                 <label for="summary">Review Summary:</label><br>
