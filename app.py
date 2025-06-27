@@ -67,7 +67,8 @@ def submit_review(book_id):
     if 'user_id' not in session:
         return "Unauthorized", 401
 
-    comment = request.form['comment']
+    summary = request.form['summary']
+    text = request.form['review_text']
     rating = int(request.form['rating'])
     user_id = session['user_id']
 
@@ -87,7 +88,7 @@ def submit_review(book_id):
         return redirect(url_for("book_detail", book_id=book_id))
     else:
         # Insert into MongoDB
-        create_review(user_id, isbn13, rating, comment, comment)
+        create_review(user_id, isbn13, rating, summary, text)
 
     # Trigger update_work_rating so that avg_rating in mariadb will be updated
     with Session() as db_session:
@@ -191,9 +192,10 @@ def edit_review(book_id, review_id):
         return "Forbidden", 403
 
     new_summary = request.form['summary']
+    new_text = request.form['review_text']
     new_rating = int(request.form['rating'])
 
-    update_review(review_id, new_summary, new_rating)
+    update_review(review_id, new_summary, new_text, new_rating)
 
     isbn13 = review.get("ISBN13")
     with Session() as db_session:

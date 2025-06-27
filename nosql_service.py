@@ -69,11 +69,11 @@ def get_review_by_id(review_id):
     except Exception:
         return None
 
-def update_review(review_id, new_summary, new_rating):
+def update_review(review_id, new_summary, new_text, new_rating):
     try:
         return reviews.update_one(
             {"_id": ObjectId(review_id)},
-            {"$set": {"review_summary": new_summary, "rating": new_rating}}
+            {"$set": {"review_summary": new_summary, "review_text": new_text, "rating": new_rating}}
         )
     except Exception:
         return None

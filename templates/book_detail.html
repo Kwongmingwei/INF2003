@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
@@ -61,37 +62,45 @@
 
     <div class="review-section">
       <h3 class="review-heading">Reviews</h3>
+
+      {% if session.get("username") %}
+        <form method="post" action="{{ url_for('submit_review', book_id=book_id) }}" class="review-form">
+          <label for="summary">Review Summary (Header):</label>
+          <input type="text" name="summary" id="summary" required>
+
+          <label for="review_text">Full Review (Body):</label>
+          <textarea name="review_text" id="review_text" rows="4" required></textarea>
+
+          <label for="rating">Rating:</label>
+          <select name="rating" id="rating">
+            {% for i in range(1, 6) %}
+            <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+
+          <button type="submit">Submit Review</button>
+        </form>
+      {% else %}
+        <p><a href="{{ url_for('login') }}">Login to leave a review</a></p>
+      {% endif %}
+
       {% if reviews %}
-        {% if session.get("username") %}
-          <form method="post" action="{{ url_for('submit_review', book_id=book_id) }}" class="review-form">
-            <label for="rating">Rating:</label>
-            <select name="rating" id="rating">
-              {% for i in range(1, 6) %}
-              <option value="{{ i }}">{{ i }}</option>
-              {% endfor %}
-            </select>
-
-            <label for="comment">Comment:</label>
-            <textarea name="comment" id="comment" required></textarea>
-
-            <button type="submit">Submit Review</button>
-          </form>
-        {% else %}
-          <p><a href="{{ url_for('login') }}">Login to leave a review</a></p>
-        {% endif %}
-        
         {% for review in reviews %}
           <div class="review-card">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <p style="margin: 0;">
-                    <strong>{{ review.username }}</strong> rated it <strong>{{ review.rating }}⭐</strong>
-                </p>
-                <small style="color: gray;">{{ review.review_date_time | format_datetime }}</small>
+              <p style="margin: 0;">
+                <strong>{{ review.username }}</strong> rated it <strong>{{ review.rating }}⭐</strong>
+              </p>
+              <small style="color: gray;">{{ review.review_date_time | format_datetime }}</small>
             </div>
+
             {% if session['user_id'] == review.User_id and edit_id == review._id %}
               <form method="POST" action="{{ url_for('edit_review', book_id=book_id, review_id=review._id) }}" class="edit-review-form">
-                <label for="summary">Review Summary:</label><br>
+                <label for="summary">Edit Summary:</label><br>
                 <input type="text" name="summary" value="{{ review.review_summary }}"><br>
+
+                <label for="review_text">Edit Full Review:</label><br>
+                <textarea name="review_text" rows="4" required>{{ review.review_text }}</textarea><br>
 
                 <label for="rating">Rating:</label><br>
                 <select name="rating">
@@ -104,7 +113,8 @@
                 <a href="{{ url_for('book_detail', book_id=book_id) }}">Cancel</a>
               </form>
             {% else %}
-              <p class="review-summary"><em>{{ review.review_summary }}</em></p>
+              <p class="review-summary"><strong>{{ review.review_summary }}</strong></p>
+              <p class="review-body">{{ review.review_text }}</p>
 
               {% if session['user_id'] == review.User_id %}
                 <div style="margin-top: 10px;">
@@ -123,7 +133,7 @@
       {% endif %}
     </div>
   </div>
-  
+
   <script>
     setTimeout(() => {
       document.querySelectorAll('.flash-message').forEach(el => {
