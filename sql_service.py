@@ -348,7 +348,7 @@ def fetch_user_from_db(username):
     conn.close()
     return user
 
-def fetch_top_books_by_authors(author_ids, limit=3):
+def fetch_top_books_by_authors(author_ids, limit=3,work_id=None):
     """
     Returns a list of the top books (by avg_rating DESC, then title ASC) for a list of author_ids.
     """
@@ -361,11 +361,17 @@ def fetch_top_books_by_authors(author_ids, limit=3):
         JOIN author_work aw ON bw.work_id = aw.work_id
         LEFT JOIN book_edition be ON be.work_id = bw.work_id
         WHERE aw.author_id IN ({placeholders})
+    '''
+    params = list(author_ids)
+    if work_id is not None:
+        sql += " AND bw.work_id != %s"
+        params.append(work_id)
+    sql += '''
         GROUP BY bw.work_id, bw.title, bw.avg_rating
         ORDER BY bw.avg_rating DESC, bw.title ASC
         LIMIT %s
     '''
-    params = list(author_ids) + [limit]
+    params.append(limit)
     cursor.execute(sql, params)
     books = cursor.fetchall()
     cursor.close()

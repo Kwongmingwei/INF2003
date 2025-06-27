@@ -45,7 +45,7 @@ def book_detail(book_id):
     author_ids = book.get("author_ids", [])
     author_books = []
     if author_ids:
-        author_books = fetch_top_books_by_authors(author_ids, limit=3)
+        author_books = fetch_top_books_by_authors(author_ids, limit=3,work_id=book_id)
     if not book:
         return "Book not found", 404
 
