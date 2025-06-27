@@ -1,5 +1,11 @@
 {% extends "base.html" %} {% block content %}
 
+<!-- Hero Section -->
+<div class="hero-section">
+  <h1 class="hero-title">Book Explorer</h1>
+  <p class="hero-subtitle">Discover, filter, and review your favorite books</p>
+</div>
+
 <div class="search-bar">
   <form
     hx-get="/search"
@@ -46,8 +52,8 @@
   </button>
 </div>
 
-<h1>BOOOKS</h1>
-<p>Top Genres (Debug): {{ top_genres }}</p>
+<h1 class="books-heading">Top Books</h1>
+<p class="books-subtitle">Browse the highest rated books</p>
 <div id="book-results">{% include "partials/book_list.html" %}</div>
 
 <div class="modal-overlay" id="filters-modal" onclick="closeFiltersModal()">
@@ -288,4 +294,9 @@
     }
   });
 </script>
+
+<!-- Footer -->
+<footer class="footer">
+  <p>&copy; 2025 Book Reviews. All rights reserved.</p>
+</footer>
 {% endblock %}
