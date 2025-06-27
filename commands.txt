@@ -1,0 +1,20 @@
+docker run -d \
+  -p 27017:27017 \
+  --name mongodb \
+  -v mongodb_data:/data/db \
+  mongo:4.4
+
+docker ps
+
+docker rm -f mongodb
+docker volume rm mongodb_data
+
+docker exec -it mongodb /bin/bash
+
+docker exec -it mongodb mongo
+docker cp /home/maria/INF2003/no_sql_db/reviews_db_dump/reviews_db mongodb:/tmp/
+
+cloudflared tunnel run book_review_app
+
+sudo journalctl -u cloudflared -f
+sudo systemctl restart cloudflared.service
