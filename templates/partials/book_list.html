@@ -1,10 +1,17 @@
 {% for book in books %}
-  <div class="book-card">
-    <h2>
-      <a href="{{ url_for('book_detail', book_id=book.work_id) }}">{{ book.title }}</a>
-    </h2>
-    <p><strong>Author(s):</strong> {{ book.authors }}</p>
-    <p><strong>Genre(s):</strong> {{ book.genres }}</p>
+  <div class="book-card book-list-card">
+    <div class="book-list-main">
+      <div class="book-list-info">
+        <h2>
+          <a href="{{ url_for('book_detail', book_id=book.work_id) }}">{{ book.title }}</a>
+        </h2>
+        <p><strong>Author(s):</strong> {{ book.authors }}</p>
+        <p><strong>Genre(s):</strong> {{ book.genres }}</p>
+      </div>
+      <div class="book-list-rating">
+        <span>{{ book.avg_rating }} ⭐</span>
+      </div>
+    </div>
   </div>
 {% else %}
   <p>No books found.</p>

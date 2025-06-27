@@ -569,3 +569,31 @@ button:hover {
   box-shadow: 0 2px 12px rgba(74, 144, 226, 0.13);
   background: #e9ecef;
 }
+
+.book-list-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.book-list-main {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+}
+
+.book-list-info {
+  flex: 1 1 auto;
+}
+
+.book-list-rating {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 1.25rem;
+  font-weight: 600;
+  min-width: 70px;
+}
