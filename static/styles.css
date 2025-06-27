@@ -644,3 +644,38 @@ button:hover {
   align-items: center;
   justify-content: center;
 }
+.flash-message {
+  padding: 15px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  text-align: center;
+  animation: fadeout 5s ease forwards;
+}
+
+.flash-success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.flash-warning {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.flash-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.flash-info {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+@keyframes fadeout {
+  0% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; display: none; }
+}

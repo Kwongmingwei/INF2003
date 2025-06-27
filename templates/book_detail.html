@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
   <div class="book-detail">
     <a href="{{ url_for('index') }}" class="back-button">← Back to Home</a>
 
@@ -76,7 +86,7 @@
                 <p style="margin: 0;">
                     <strong>{{ review.username }}</strong> rated it <strong>{{ review.rating }}⭐</strong>
                 </p>
-                <small style="color: gray;">{{ review.review_date_time | format_datetime  }}</small>
+                <small style="color: gray;">{{ review.review_date_time | format_datetime }}</small>
             </div>
             {% if session['user_id'] == review.User_id and edit_id == review._id %}
               <form method="POST" action="{{ url_for('edit_review', book_id=book_id, review_id=review._id) }}" class="edit-review-form">
@@ -113,4 +123,13 @@
       {% endif %}
     </div>
   </div>
+  
+  <script>
+    setTimeout(() => {
+      document.querySelectorAll('.flash-message').forEach(el => {
+        el.style.display = 'none';
+      });
+    }, 5000);
+  </script>
+
 {% endblock %}

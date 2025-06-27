@@ -1,5 +1,5 @@
 import mysql.connector
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from datetime import date, timedelta, datetime
 from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review,reviews
 import click
@@ -83,8 +83,8 @@ def submit_review(book_id):
     })
 
     if existing:
-        print("error duplicate !!!!!!!!!!!!!!!!!")
-        return redirect(url_for("book_detail", book_id=book_id, from_review="1"))
+        flash("You've already submitted a review for this book.", "warning")
+        return redirect(url_for("book_detail", book_id=book_id))
     else:
         # Insert into MongoDB
         create_review(user_id, isbn13, rating, comment, comment)
