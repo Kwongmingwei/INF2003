@@ -92,6 +92,7 @@ class Category(Base):
     work = relationship("BookWork", back_populates="categories")
 
 def normalize_isbn(isbn_raw):
+    """ Normalize an ISBN string to ISBN-13 format."""
     isbn = re.sub(r'[^0-9X]', '', isbn_raw.upper())  # remove dashes/spaces
     if is_isbn10(isbn):
         return to_isbn13(isbn)
@@ -201,7 +202,7 @@ def fetch_top_genres():
     conn.close()
     return genres
 
-def fetch_books_from_db(query=None, field="title", genres=None, year_from =None, year_to=None):
+def fetch_books_from_db(query=None, field="title", genres=None, year_from =None, year_to=None, isbn=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -225,6 +226,15 @@ def fetch_books_from_db(query=None, field="title", genres=None, year_from =None,
         elif field == "author":
             conditions.append("a.name LIKE %s")
             params.append(f"%{query}%")
+        elif field == "isbn":
+            normalized = normalize_isbn(query)
+            if normalized:
+                # If valid isbn13, search for it
+                conditions.append("be.isbn13 = %s")
+                params.append(normalized)
+            else:
+                # If invalid, return early
+                return []
 
     if genres:
         genre_placeholders = ','.join(['%s'] * len(genres))
@@ -248,6 +258,12 @@ def fetch_books_from_db(query=None, field="title", genres=None, year_from =None,
     if not query:
             sql += " LIMIT 1000"
     '''
+    # print("--- EXECUTING SQL ---")
+    # print(sql)
+    # print("--- WITH PARAMS ---")
+    # print(params)
+    # print("--- WITH CON ---")
+    # print(conditions)
 
     cursor.execute(sql, params)
     books = cursor.fetchall()
@@ -261,9 +277,10 @@ def fetch_book_details(work_id):
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT bw.title, bw.description, be.isbn13,
+        SELECT bw.title, bw.description, be.isbn13,be.cover_id,
                GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors,
-               GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres
+               GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres,
+               GROUP_CONCAT(DISTINCT a.author_id) AS author_ids
         FROM book_work bw
         LEFT JOIN author_work aw ON bw.work_id = aw.work_id
         LEFT JOIN author a ON a.author_id = aw.author_id
@@ -277,6 +294,10 @@ def fetch_book_details(work_id):
     book = cursor.fetchone()
     cursor.close()
     conn.close()
+    if book and book.get("author_ids"):
+        book["author_ids"] = [int(aid) for aid in book["author_ids"].split(",") if aid]
+    else:
+        book["author_ids"] = []
     return book
 
 
@@ -289,3 +310,33 @@ def fetch_user_from_db(username):
     cursor.close()
     conn.close()
     return user
+
+def fetch_top_books_by_authors(author_ids, limit=3,work_id=None):
+    """
+    Returns a list of the top books (by avg_rating DESC, then title ASC) for a list of author_ids.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    placeholders = ','.join(['%s'] * len(author_ids))
+    sql = f'''
+        SELECT bw.work_id, bw.title, bw.avg_rating, MIN(be.cover_id) AS cover_id
+        FROM book_work bw
+        JOIN author_work aw ON bw.work_id = aw.work_id
+        LEFT JOIN book_edition be ON be.work_id = bw.work_id
+        WHERE aw.author_id IN ({placeholders})
+    '''
+    params = list(author_ids)
+    if work_id is not None:
+        sql += " AND bw.work_id != %s"
+        params.append(work_id)
+    sql += '''
+        GROUP BY bw.work_id, bw.title, bw.avg_rating
+        ORDER BY bw.avg_rating DESC, bw.title ASC
+        LIMIT %s
+    '''
+    params.append(limit)
+    cursor.execute(sql, params)
+    books = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return books

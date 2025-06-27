@@ -1,11 +1,11 @@
 import mysql.connector
-from flask import Flask, render_template, request, redirect, url_for, session
-from datetime import date, timedelta
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from datetime import date, timedelta, datetime
 from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review,reviews
 import click
 import logging
 from tqdm import tqdm
-from sql_service import Session, BookWork, get_work_id_for_isbn, update_work_rating, _calculate_and_stage_update, get_db_connection, fetch_all_genres, fetch_top_genres, fetch_books_from_db, fetch_user_from_db, fetch_book_details
+from sql_service import Session, BookWork, get_work_id_for_isbn, update_work_rating, _calculate_and_stage_update, get_db_connection, fetch_all_genres, fetch_top_genres, fetch_books_from_db, fetch_user_from_db, fetch_book_details, fetch_top_books_by_authors
 
 app = Flask(__name__)
 app.secret_key = 'KEY'
@@ -42,13 +42,24 @@ def index():
 @app.route('/book/<int:book_id>')
 def book_detail(book_id):
     book = fetch_book_details(book_id)
+    author_ids = book.get("author_ids", [])
+    author_books = []
+    if author_ids:
+        author_books = fetch_top_books_by_authors(author_ids, limit=3,work_id=book_id)
     if not book:
         return "Book not found", 404
 
     isbn13 = book.get("isbn13")
     book_reviews = get_reviews_by_isbn(isbn13) if isbn13 else []
 
-    return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews)
+    return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,author_books=author_books)
+
+
+@app.template_filter('format_datetime')
+def format_datetime(value):
+    if isinstance(value, datetime):
+        return value.strftime("%d %b %Y %I:%M %p")
+    return value
 
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])
@@ -72,8 +83,8 @@ def submit_review(book_id):
     })
 
     if existing:
-        print("error duplicate !!!!!!!!!!!!!!!!!")
-        return redirect(url_for("book_detail", book_id=book_id, from_review="1"))
+        flash("You've already submitted a review for this book.", "warning")
+        return redirect(url_for("book_detail", book_id=book_id))
     else:
         # Insert into MongoDB
         create_review(user_id, isbn13, rating, comment, comment)

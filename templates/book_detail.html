@@ -1,16 +1,58 @@
 {% extends "base.html" %}
 {% block content %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
   <div class="book-detail">
     <a href="{{ url_for('index') }}" class="back-button">← Back to Home</a>
 
     <div class="book-info-card">
       <div class="book-cover-container">
-        <img src="https://via.placeholder.com/140x200?text=Book+Cover" alt="Book Cover" class="book-cover-img" />
+        {% if book.cover_id %}
+          <img src="https://covers.openlibrary.org/a/id/{{ book.cover_id }}-L.jpg"
+              alt="Book Cover"
+              class="book-cover-img" />
+        {% else %}
+          <img src="https://via.placeholder.com/140x200?text=Book+Cover"
+              alt="Book Cover"
+              class="book-cover-img" />
+        {% endif %}
       </div>
       <h1 class="book-title">{{ book.title }}</h1>
       <p class="book-meta"><strong>Author(s):</strong> {{ book.authors }}</p>
       <p class="book-meta"><strong>Genre(s):</strong> {{ book.genres }}</p>
       <p class="book-description">{{ book.description }}</p>
+    </div>
+
+    <hr class="divider">
+
+    <div class="authors-works">
+      <h2>Works by {{ book.authors }}</h2>
+      {% if author_books %}
+        <div class="authors-works-grid">
+          {% for work in author_books[:3] %}
+            <div class="authors-work-card">
+              <a href="{{ url_for('book_detail', book_id=work.work_id) }}">
+                {% if work.cover_id %}
+                  <img src="https://covers.openlibrary.org/a/id/{{ work.cover_id }}-L.jpg" alt="Book Cover" class="authors-work-cover" />
+                {% else %}
+                  <img src="https://via.placeholder.com/100x140?text=Book" alt="Book Cover" class="authors-work-cover" />
+                {% endif %}
+                <div class="authors-work-title">{{ work.title }}</div>
+              </a>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p>No other works found for this author.</p>
+      {% endif %}
     </div>
 
     <hr class="divider">
@@ -40,8 +82,12 @@
         
         {% for review in reviews %}
           <div class="review-card">
-            <p><strong>{{ review.username }}</strong> rated it <strong>{{ review.rating }}⭐</strong></p>
-
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p style="margin: 0;">
+                    <strong>{{ review.username }}</strong> rated it <strong>{{ review.rating }}⭐</strong>
+                </p>
+                <small style="color: gray;">{{ review.review_date_time | format_datetime }}</small>
+            </div>
             {% if session['user_id'] == review.User_id and edit_id == review._id %}
               <form method="POST" action="{{ url_for('edit_review', book_id=book_id, review_id=review._id) }}" class="edit-review-form">
                 <label for="summary">Review Summary:</label><br>
@@ -77,4 +123,13 @@
       {% endif %}
     </div>
   </div>
+  
+  <script>
+    setTimeout(() => {
+      document.querySelectorAll('.flash-message').forEach(el => {
+        el.style.display = 'none';
+      });
+    }, 5000);
+  </script>
+
 {% endblock %}
