@@ -161,6 +161,7 @@ def update_work_rating(work_id: int):
 
     conn = get_db_connection()
     cursor = conn.cursor()
+    conn.start_transaction()
     
     try:
         if _calculate_and_stage_update(work_id, conn, cursor):
