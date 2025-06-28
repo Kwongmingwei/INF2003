@@ -129,33 +129,34 @@ def register():
         email = request.form['email']
         password = request.form['password']
         datejoined = date.today().strftime('%Y-%m-%d')
+        try:
+            existing_user = fetch_user_from_db(username)
+            if existing_user:
+                return render_template("register.html", error="Username already taken")
 
-        existing_user = fetch_user_from_db(username)
-        if existing_user:
-            return render_template("register.html", error="Username already taken")
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM user WHERE email = %s", (email,))
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return render_template("register.html", error="Email already taken")
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM user WHERE email = %s", (email,))
-        if cursor.fetchone():
+            cursor.execute("""
+                INSERT INTO user (username, password, email, date_joined)
+                VALUES (%s, %s, %s, %s)
+            """, (username, password, email, datejoined))
+            conn.commit()
             cursor.close()
             conn.close()
-            return render_template("register.html", error="Email already taken")
 
-        cursor.execute("""
-            INSERT INTO user (username, password, email, date_joined)
-            VALUES (%s, %s, %s, %s)
-        """, (username, password, email, datejoined))
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        session['username'] = username
-        # TODO SESSION DOES NOT HAVE USER ID AFTER REGISTER
-        return redirect(url_for('index'))
-
+            user = fetch_user_from_db(username)
+            session['username'] = user['username']
+            session['user_id'] = user['user_id']
+            return redirect(url_for('index'))
+        except Exception as e:
+            return render_template("register.html", error=f"Registration failed: {e}")
     return render_template('register.html')
-
 
 @app.route('/logout')
 def logout():
