@@ -1,11 +1,13 @@
-import logging
-import re
-
 import mysql.connector
+from sqlalchemy import Column, Integer, String, Text, Date, ForeignKey, CHAR, Numeric
+from sqlalchemy.orm import relationship, declarative_base
+import re
 from isbnlib import to_isbn13, is_isbn10, is_isbn13
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import logging
 
 from nosql_service import get_aggregate_rating_for_work
-
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -16,6 +18,78 @@ def get_db_connection():
         charset='utf8mb4'
     )
 
+Base = declarative_base()
+
+#engine = create_engine("mysql+pymysql://{changethis}:{passwordofyourthing}@localhost/book_review")
+engine = create_engine("mysql+pymysql://dev:password@localhost/book_review")
+Session = sessionmaker(bind=engine)
+session = Session()
+Base.metadata.create_all(engine)
+
+class Author(Base):
+    __tablename__ = 'author'
+
+    author_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    bio = Column(Text)
+    birth_date = Column(Date)
+
+    works = relationship("AuthorWork", back_populates="author")
+
+
+class BookWork(Base):
+    __tablename__ = 'book_work'
+
+    work_id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(150), nullable=False)
+    description = Column(Text)
+    avg_rating = Column(Numeric(3, 2))
+
+    editions = relationship("BookEdition", back_populates="work")
+    authors = relationship("AuthorWork", back_populates="work")
+    categories = relationship("Category", back_populates="work")
+
+
+class AuthorWork(Base):
+    __tablename__ = 'author_work'
+
+    author_id = Column(Integer, ForeignKey('author.author_id'), primary_key=True)
+    work_id = Column(Integer, ForeignKey('book_work.work_id'), primary_key=True)
+
+    author = relationship("Author", back_populates="works")
+    work = relationship("BookWork", back_populates="authors")
+
+
+class BookEdition(Base):
+    __tablename__ = 'book_edition'
+
+    isbn13 = Column(CHAR(13), primary_key=True)
+    isbn10 = Column(CHAR(10), unique=True)
+    publish_year = Column(Integer)
+    cover_id = Column(Integer)
+    publisher_name = Column(String(100))
+    work_id = Column(Integer, ForeignKey('book_work.work_id'))
+
+    work = relationship("BookWork", back_populates="editions")
+
+
+class Genre(Base):
+    __tablename__ = 'genre'
+
+    genre_id = Column(Integer, primary_key=True)
+    genre_name = Column(String(100), unique=True, nullable=False)
+
+    categories = relationship("Category", back_populates="genre")
+
+
+class Category(Base):
+    __tablename__ = 'category'
+
+    genre_id = Column(Integer, ForeignKey('genre.genre_id'), primary_key=True)
+    work_id = Column(Integer, ForeignKey('book_work.work_id'), primary_key=True)
+
+    genre = relationship("Genre", back_populates="categories")
+    work = relationship("BookWork", back_populates="categories")
 
 def normalize_isbn(isbn_raw):
     """ Normalize an ISBN string to ISBN-13 format."""
@@ -27,8 +101,7 @@ def normalize_isbn(isbn_raw):
     else:
         return None
 
-
-def _calculate_and_stage_update(work_id, cursor) -> bool:
+def _calculate_and_stage_update(work_id: int, conn, cursor) -> bool:
     """
     Calculates rating by calling the get_aggregate_rating_for_work from nosql_service.py
     and stages the change in the SQLAlchemy session WITHOUT committing.
@@ -50,7 +123,7 @@ def _calculate_and_stage_update(work_id, cursor) -> bool:
 
     if not stats:
         cursor.execute("UPDATE book_work SET avg_rating = NULL WHERE work_id = %s", (work_id,))
-        return True  # Correctly determined there is no rating.
+        return True # Correctly determined there is no rating.
 
     total_sum = stats.get('total_rating_sum', 0)
     total_count = stats.get('total_review_count', 0)
@@ -69,9 +142,7 @@ def get_work_id_for_isbn(isbn13: str):
     cursor = conn.cursor(dictionary=True)
     if not isbn13:
         return None
-    cursor.execute(
-        "SELECT bw.work_id FROM book_work bw JOIN book_edition be ON bw.work_id=be.work_id WHERE be.isbn13 = %s",
-        (isbn13,))
+    cursor.execute("SELECT bw.work_id FROM book_work bw JOIN book_edition be ON bw.work_id=be.work_id WHERE be.isbn13 = %s", (isbn13,))
     result = cursor.fetchone()
 
     cursor.close()
@@ -91,9 +162,9 @@ def update_work_rating(work_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
     conn.start_transaction()
-
+    
     try:
-        if _calculate_and_stage_update(work_id, cursor):
+        if _calculate_and_stage_update(work_id, conn, cursor):
             conn.commit()
             logging.info(f"Successfully updated avg_rating for work_id: {work_id}")
         else:
@@ -105,7 +176,6 @@ def update_work_rating(work_id: int):
     finally:
         cursor.close()
         conn.close()
-
 
 def fetch_all_genres():
     conn = get_db_connection()
@@ -133,8 +203,7 @@ def fetch_top_genres():
     conn.close()
     return genres
 
-
-def fetch_books_from_db(query=None, field="title", genres=None, year_from=None, year_to=None):
+def fetch_books_from_db(query=None, field="title", genres=None, year_from =None, year_to=None, isbn=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -171,12 +240,12 @@ def fetch_books_from_db(query=None, field="title", genres=None, year_from=None, 
     if genres:
         genre_placeholders = ','.join(['%s'] * len(genres))
         conditions.append(f"g.genre_name IN ({genre_placeholders})")
-        params.append(genres)
-
+        params.extend(genres)
+        
     if year_from:
         conditions.append("be.publish_year >= %s")
         params.append(year_from)
-
+    
     if year_to:
         conditions.append("be.publish_year <= %s")
         params.append(year_to)
@@ -243,8 +312,7 @@ def fetch_user_from_db(username):
     conn.close()
     return user
 
-
-def fetch_top_books_by_authors(author_ids, limit=3, work_id=None):
+def fetch_top_books_by_authors(author_ids, limit=3,work_id=None):
     """
     Returns a list of the top books (by avg_rating DESC, then title ASC) for a list of author_ids.
     """

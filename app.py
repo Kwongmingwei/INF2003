@@ -1,19 +1,17 @@
-from datetime import date, timedelta
-
-import click
+import mysql.connector
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from datetime import date, timedelta, datetime
+from nosql_service import create_review, get_reviews_by_isbn, update_review, get_review_by_id, delete_review,reviews
+import click
+import logging
 from tqdm import tqdm
-
-from nosql_service import *
-from sql_service import *
-from sql_service import _calculate_and_stage_update
+from sql_service import Session, BookWork, get_work_id_for_isbn, update_work_rating, _calculate_and_stage_update, get_db_connection, fetch_all_genres, fetch_top_genres, fetch_books_from_db, fetch_user_from_db, fetch_book_details, fetch_top_books_by_authors
 
 app = Flask(__name__)
 app.secret_key = 'KEY'
 
 app.permanent_session_lifetime = timedelta(minutes=30)
 app.config['SESSION_PERMANENT'] = False
-
 
 # db connection test
 # flask run
@@ -31,7 +29,6 @@ def db_test():
     except Exception as e:
         return f"❌ Database connection failed: {e}"
 
-
 @app.route('/')
 def index():
     books = fetch_books_from_db()
@@ -48,15 +45,14 @@ def book_detail(book_id):
     author_ids = book.get("author_ids", [])
     author_books = []
     if author_ids:
-        author_books = fetch_top_books_by_authors(author_ids, limit=3, work_id=book_id)
+        author_books = fetch_top_books_by_authors(author_ids, limit=3,work_id=book_id)
     if not book:
         return "Book not found", 404
 
     isbn13 = book.get("isbn13")
     book_reviews = get_reviews_by_isbn(isbn13) if isbn13 else []
 
-    return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,
-                           author_books=author_books)
+    return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,author_books=author_books)
 
 
 @app.template_filter('format_datetime')
@@ -170,11 +166,11 @@ def search():
 
     year_from = request.args.get("year_from", "").strip()
     year_to = request.args.get("year_to", "").strip()
-
+    
     year_from = int(year_from) if year_from else None
     year_to = int(year_to) if year_to else None
-
-    books = fetch_books_from_db(query if query else None, field, genre_list, year_from, year_to)
+    
+    books = fetch_books_from_db(query if query else None, field, genre_list,year_from, year_to)
 
     if request.headers.get("HX-Request"):
         return render_template("partials/book_list.html", books=books)
@@ -207,7 +203,6 @@ def edit_review(book_id, review_id):
 
     return redirect(url_for('book_detail', book_id=book_id))
 
-
 @app.route('/book/<int:book_id>/review/delete/<review_id>', methods=['POST'])
 def delete_review_route(book_id, review_id):
     if 'user_id' not in session:
@@ -233,7 +228,6 @@ def delete_review_route(book_id, review_id):
         update_work_rating(work_id)
 
     return redirect(url_for('book_detail', book_id=book_id))
-
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -264,7 +258,7 @@ def populate_ratings_command(batch_size):
 
     for i, work_id in enumerate(progress_bar):
         try:
-            if _calculate_and_stage_update(work_id, cursor):
+            if _calculate_and_stage_update(work_id, conn, cursor):
                 success_count += 1
             else:
                 fail_count += 1

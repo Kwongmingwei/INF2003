@@ -1,15 +1,16 @@
 # nosql_service.py
-from datetime import datetime
-
-import mysql.connector
-from bson.objectid import ObjectId
 from pymongo import MongoClient
+from datetime import datetime
+from bson.objectid import ObjectId
+import mysql.connector
 from pymongo.errors import DuplicateKeyError
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["reviews_db"]
 reviews = db["reviews"]
 
+# compund key to ensure uniquness
+# reviews.create_index([("User_id", 1), ("ISBN13", 1)], unique=True)
 
 def get_db_connection():
     return mysql.connector.connect(
@@ -18,7 +19,6 @@ def get_db_connection():
         password='password',
         database='book_review'
     )
-
 
 def create_review(user_id, isbn13, rating, summary, text):
     review = {
@@ -32,8 +32,8 @@ def create_review(user_id, isbn13, rating, summary, text):
     try:
         return reviews.insert_one(review)
     except DuplicateKeyError:
-        print("User has already reviewed this book.")
-        return None
+         print("User has already reviewed this book.")
+         return None
 
 
 def get_reviews_by_isbn(isbn13):
@@ -63,13 +63,11 @@ def get_reviews_by_isbn(isbn13):
 
     return review_list
 
-
 def get_review_by_id(review_id):
     try:
         return reviews.find_one({"_id": ObjectId(review_id)})
     except Exception:
         return None
-
 
 def update_review(review_id, new_summary, new_text, new_rating):
     try:
@@ -79,7 +77,6 @@ def update_review(review_id, new_summary, new_text, new_rating):
         )
     except Exception:
         return None
-
 
 def delete_review(review_id):
     try:
