@@ -171,7 +171,7 @@ def fetch_books_from_db(query=None, field="title", genres=None, year_from=None, 
     if genres:
         genre_placeholders = ','.join(['%s'] * len(genres))
         conditions.append(f"g.genre_name IN ({genre_placeholders})")
-        params.append(genres)
+        params.extend(genres)
 
     if year_from:
         conditions.append("be.publish_year >= %s")
