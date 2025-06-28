@@ -5,6 +5,7 @@ import mysql.connector
 from bson.objectid import ObjectId
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
+from utils import log_duration
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["reviews_db"]
@@ -87,7 +88,7 @@ def delete_review(review_id):
     except Exception:
         return None
 
-
+@log_duration("get_aggregate_rating_for_work")
 def get_aggregate_rating_for_work(list_of_isbns: list):
     """
     Performs a single, efficient aggregation to get the total rating sum and

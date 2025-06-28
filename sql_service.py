@@ -5,6 +5,7 @@ import mysql.connector
 from isbnlib import to_isbn13, is_isbn10, is_isbn13
 
 from nosql_service import get_aggregate_rating_for_work
+from utils import log_duration
 
 
 def get_db_connection():
@@ -133,7 +134,7 @@ def fetch_top_genres():
     conn.close()
     return genres
 
-
+@log_duration("fetch_books_from_db")
 def fetch_books_from_db(query=None, field="title", genres=None, year_from=None, year_to=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)

@@ -7,6 +7,7 @@ from tqdm import tqdm
 from nosql_service import *
 from sql_service import *
 from sql_service import _calculate_and_stage_update
+from utils import log_duration
 
 app = Flask(__name__)
 app.secret_key = 'KEY'
@@ -43,6 +44,7 @@ def index():
 
 
 @app.route('/book/<int:book_id>')
+@log_duration("/book/<book_id>")
 def book_detail(book_id):
     book = fetch_book_details(book_id)
     author_ids = book.get("author_ids", [])
