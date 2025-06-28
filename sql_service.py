@@ -76,7 +76,7 @@ def get_work_id_for_isbn(isbn13: str):
 
     cursor.close()
     conn.close()
-    return result if result else None
+    return result.get("work_id") if result else None
 
 
 def update_work_rating(work_id: int):

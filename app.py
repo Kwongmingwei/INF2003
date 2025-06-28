@@ -206,6 +206,7 @@ def edit_review(book_id, review_id):
 
     isbn13 = review.get("ISBN13")
     work_id = get_work_id_for_isbn(isbn13)
+
     if work_id:
         update_work_rating(work_id)
 

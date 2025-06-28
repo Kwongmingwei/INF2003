@@ -21,7 +21,7 @@
               alt="Book Cover"
               class="book-cover-img" />
         {% else %}
-          <img src="https://via.placeholder.com/140x200?text=Book+Cover"
+          <img src="https://placehold.co/140x200?text={{ book.title | urlencode }}"
               alt="Book Cover"
               class="book-cover-img" />
         {% endif %}
@@ -30,7 +30,7 @@
       <h1 class="book-title">{{ book.title }}</h1>
       <p class="book-meta"><strong>Author(s):</strong> {{ book.authors }}</p>
       <p class="book-meta"><strong>Genre(s):</strong> {{ book.genres }}</p>
-      <p class="book-description">{{ book.description }}</p>
+      <p class="book-description">{{ book.description or '' }}</p>
       {% if editions %}
         <h3>Editions</h3>
         <table class="editions-table">
