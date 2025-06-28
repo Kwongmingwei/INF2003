@@ -209,7 +209,7 @@ def fetch_book_details(work_id):
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT bw.title, bw.description, be.isbn13,be.cover_id,
+        SELECT bw.title, bw.description, be.isbn13,MIN(be.cover_id) AS cover_id,
                GROUP_CONCAT(DISTINCT a.name SEPARATOR ', ') AS authors,
                GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genres,
                GROUP_CONCAT(DISTINCT a.author_id) AS author_ids
@@ -244,7 +244,7 @@ def fetch_user_from_db(username):
     return user
 
 
-def fetch_top_books_by_authors(author_ids, limit=3, work_id=None):
+def fetch_top_books_by_authors(author_ids, limit=4, work_id=None):
     """
     Returns a list of the top books (by avg_rating DESC, then title ASC) for a list of author_ids.
     """
@@ -273,3 +273,20 @@ def fetch_top_books_by_authors(author_ids, limit=3, work_id=None):
     cursor.close()
     conn.close()
     return books
+
+def fetch_editions_for_work(work_id):
+    """
+    Returns a list of all editions for a given work_id, including isbn13, isbn10, publisher_name, and publish_year.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT isbn13, isbn10, publisher_name, publish_year
+        FROM book_edition
+        WHERE work_id = %s
+        ORDER BY publish_year DESC
+    """, (work_id,))
+    editions = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return editions

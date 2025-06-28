@@ -679,3 +679,20 @@ button:hover {
   80% { opacity: 1; }
   100% { opacity: 0; display: none; }
 }
+
+.editions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+}
+.editions-table th, .editions-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+.editions-table th {
+  background-color: #f4f4f4;
+}
+.editions-table tr:nth-child(even) {
+  background-color: #fafafa;
+}

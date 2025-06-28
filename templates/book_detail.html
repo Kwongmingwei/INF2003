@@ -26,10 +26,36 @@
               class="book-cover-img" />
         {% endif %}
       </div>
+
       <h1 class="book-title">{{ book.title }}</h1>
       <p class="book-meta"><strong>Author(s):</strong> {{ book.authors }}</p>
       <p class="book-meta"><strong>Genre(s):</strong> {{ book.genres }}</p>
       <p class="book-description">{{ book.description }}</p>
+      {% if editions %}
+        <h3>Editions</h3>
+        <table class="editions-table">
+          <thead>
+            <tr>
+              <th>ISBN-13</th>
+              <th>ISBN-10</th>
+              <th>Publisher</th>
+              <th>Year</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ed in editions %}
+            <tr>
+              <td>{{ ed.isbn13 }}</td>
+              <td>{{ ed.isbn10 }}</td>
+              <td>{{ ed.publisher_name }}</td>
+              <td>{{ ed.publish_year }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No editions found for this work.</p>
+      {% endif %}
     </div>
 
     <hr class="divider">
@@ -38,7 +64,7 @@
       <h2>Works by {{ book.authors }}</h2>
       {% if author_books %}
         <div class="authors-works-grid">
-          {% for work in author_books[:3] %}
+          {% for work in author_books[:4] %}
             <div class="authors-work-card">
               <a href="{{ url_for('book_detail', book_id=work.work_id) }}">
                 {% if work.cover_id %}

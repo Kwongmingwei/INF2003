@@ -48,15 +48,18 @@ def book_detail(book_id):
     author_ids = book.get("author_ids", [])
     author_books = []
     if author_ids:
-        author_books = fetch_top_books_by_authors(author_ids, limit=3, work_id=book_id)
+        author_books = fetch_top_books_by_authors(author_ids, limit=4, work_id=book_id)
     if not book:
         return "Book not found", 404
+    
+    editions = fetch_editions_for_work(book_id)
+    
 
     isbn13 = book.get("isbn13")
     book_reviews = get_reviews_by_isbn(isbn13) if isbn13 else []
 
     return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,
-                           author_books=author_books)
+                           author_books=author_books,editions=editions)
 
 
 @app.template_filter('format_datetime')
