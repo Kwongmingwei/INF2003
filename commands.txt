@@ -21,3 +21,26 @@ cloudflared tunnel run book_review_app
 
 sudo journalctl -u cloudflared -f
 sudo systemctl restart cloudflared.service
+
+
+sudo nano /etc/systemd/system/book-review-app.service
+
+[Unit]
+Description=Book Review Flask App
+After=network.target
+
+[Service]
+User=maria
+WorkingDirectory=/home/maria/INF2003
+ExecStart=/home/maria/INF2003/.venv/bin/python3 /home/maria/INF2003/app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable book-review-app
+sudo systemctl start book-review-app
+
+sudo systemctl status book-review-app
