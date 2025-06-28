@@ -12,7 +12,10 @@ docker volume rm mongodb_data
 docker exec -it mongodb /bin/bash
 
 docker exec -it mongodb mongo
+
 docker cp /home/maria/INF2003/no_sql_db/reviews_db_dump/reviews_db mongodb:/tmp/
+docker exec -it mongodb mongorestore --drop --db reviews_db mongodb:/tmp/reviews_db
+source /home/maria/INF2003/sql/book_review_no_ol_v2_ratings.sql
 
 cloudflared tunnel run book_review_app
 
