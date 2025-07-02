@@ -204,7 +204,7 @@ def fetch_books_from_db(query=None, field="title", genres=None, year_from=None, 
     conn.close()
     return books
 
-
+@log_duration("fetch_book_details(sql)")
 def fetch_book_details(work_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
