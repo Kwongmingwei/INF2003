@@ -134,7 +134,7 @@ def fetch_top_genres():
     conn.close()
     return genres
 
-@log_duration("fetch_books_from_db")
+@log_duration("fetch_books_from_db(sql)")
 def fetch_books_from_db(query=None, field="title", genres=None, year_from=None, year_to=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)

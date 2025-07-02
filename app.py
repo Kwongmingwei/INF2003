@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 import click
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from tqdm import tqdm
 
 from nosql_service import *
@@ -56,9 +56,12 @@ def book_detail(book_id):
     
     editions = fetch_editions_for_work(book_id)
     
-
+    conn = get_db_connection()
+    cursor = conn.cursor()
     isbn13 = book.get("isbn13")
-    book_reviews = get_reviews_by_isbn(isbn13) if isbn13 else []
+    book_reviews = get_reviews_by_isbn(isbn13, cursor) if isbn13 else []
+    cursor.close()
+    conn.close()
 
     return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,
                            author_books=author_books,editions=editions)
@@ -168,6 +171,7 @@ def logout():
 
 
 @app.route('/search')
+@log_duration("/search")
 def search():
     query = request.args.get("query", "").strip()
     field = request.args.get("searchDropdown", "title")

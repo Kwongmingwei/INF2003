@@ -46,4 +46,16 @@ sudo systemctl start book-review-app
 sudo systemctl status book-review-app
 
 
-9780808510253 - 24 reviews
+9780808510253 (work_id: 2336) - 24 reviews
+
+/search and fetch_books_from_db (sql)
+curl http://localhost:5000/search?query=e
+curl https://bookreviewdb.win/search?query=e
+curl http://localhost:5001/search?query=e
+
+/book/2336 and get_reviews_by_isbn (nosql)
+curl http://localhost:5000/book/2336
+curl http://localhost:5001/book/2336
+
+curl http://localhost:5000/debug/aggregate-rating?isbn=9780808510253
+curl http://localhost:5001/debug/aggregate-rating?isbn=9780808510253

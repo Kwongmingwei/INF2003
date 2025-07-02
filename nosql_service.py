@@ -36,8 +36,8 @@ def create_review(user_id, isbn13, rating, summary, text):
         print("User has already reviewed this book.")
         return None
 
-
-def get_reviews_by_isbn(isbn13):
+@log_duration("get_reviews_by_isbn(nosql)")
+def get_reviews_by_isbn(isbn13, cursor):
     review_list = []
 
     for r in reviews.find({"ISBN13": isbn13}).sort("review_date_time", -1):
@@ -49,14 +49,10 @@ def get_reviews_by_isbn(isbn13):
         try:
             user_id = r.get("User_id")
             if user_id:
-                conn = get_db_connection()
-                cursor = conn.cursor()
                 cursor.execute("SELECT username FROM user WHERE user_id = %s", (user_id,))
                 result = cursor.fetchone()
                 if result:
                     r["username"] = result[0]
-                cursor.close()
-                conn.close()
         except:
             pass
 
