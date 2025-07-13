@@ -1,4 +1,5 @@
 # nosql_service.py
+import logging
 from datetime import datetime
 
 import mysql.connector
@@ -37,7 +38,9 @@ def create_review(user_id, isbn13, rating, summary, text):
         return None
 
 @log_duration("get_reviews_by_isbn(nosql)")
-def get_reviews_by_isbn(isbn13, cursor):
+def get_reviews_by_isbn(isbn13, conn):
+    cursor = conn.cursor()
+
     review_list = []
 
     for r in reviews.find({"ISBN13": isbn13}).sort("review_date_time", -1):
@@ -46,6 +49,7 @@ def get_reviews_by_isbn(isbn13, cursor):
         # Default fallback
         r["username"] = "Unknown User"
 
+        user_id = None
         try:
             user_id = r.get("User_id")
             if user_id:
@@ -53,11 +57,12 @@ def get_reviews_by_isbn(isbn13, cursor):
                 result = cursor.fetchone()
                 if result:
                     r["username"] = result[0]
-        except:
-            pass
+        except Exception as e:
+            logging.warning(f"Error fetching username for user_id={user_id}: {e}")
 
         review_list.append(r)
 
+    cursor.close()
     return review_list
 
 

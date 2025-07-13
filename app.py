@@ -46,21 +46,21 @@ def index():
 @app.route('/book/<int:book_id>')
 @log_duration("/book/<book_id>")
 def book_detail(book_id):
-    book = fetch_book_details(book_id)
+    conn = get_db_connection()
+
+    book = fetch_book_details(book_id, conn)
     author_ids = book.get("author_ids", [])
     author_books = []
     if author_ids:
-        author_books = fetch_top_books_by_authors(author_ids, limit=4, work_id=book_id)
+        author_books = fetch_top_books_by_authors(conn, author_ids, limit=4, work_id=book_id)
     if not book:
         return "Book not found", 404
     
-    editions = fetch_editions_for_work(book_id)
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    editions = fetch_editions_for_work(book_id, conn)
+
     isbn13 = book.get("isbn13")
-    book_reviews = get_reviews_by_isbn(isbn13, cursor) if isbn13 else []
-    cursor.close()
+    book_reviews = get_reviews_by_isbn(isbn13, conn) if isbn13 else []
+
     conn.close()
 
     return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,
@@ -76,6 +76,8 @@ def format_datetime(value):
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])
 def submit_review(book_id):
+    conn = get_db_connection()
+
     if 'user_id' not in session:
         return "Unauthorized", 401
 
@@ -84,7 +86,7 @@ def submit_review(book_id):
     rating = int(request.form['rating'])
     user_id = session['user_id']
 
-    book = fetch_book_details(book_id)
+    book = fetch_book_details(book_id, conn)
     isbn13 = book.get("isbn13")
 
     if not isbn13:
