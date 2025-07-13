@@ -109,6 +109,7 @@ def submit_review(book_id):
     if work_id:
         update_work_rating(work_id)
 
+    conn.close()
     return redirect(url_for('book_detail', book_id=book_id))
 
 
