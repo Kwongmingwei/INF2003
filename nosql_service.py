@@ -1,10 +1,12 @@
 # nosql_service.py
+import logging
 from datetime import datetime
 
 import mysql.connector
 from bson.objectid import ObjectId
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
+from utils import log_duration
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["reviews_db"]
@@ -35,8 +37,10 @@ def create_review(user_id, isbn13, rating, summary, text):
         print("User has already reviewed this book.")
         return None
 
+@log_duration("get_reviews_by_isbn(nosql)")
+def get_reviews_by_isbn(isbn13, conn):
+    cursor = conn.cursor()
 
-def get_reviews_by_isbn(isbn13):
     review_list = []
 
     for r in reviews.find({"ISBN13": isbn13}).sort("review_date_time", -1):
@@ -45,22 +49,20 @@ def get_reviews_by_isbn(isbn13):
         # Default fallback
         r["username"] = "Unknown User"
 
+        user_id = None
         try:
             user_id = r.get("User_id")
             if user_id:
-                conn = get_db_connection()
-                cursor = conn.cursor()
                 cursor.execute("SELECT username FROM user WHERE user_id = %s", (user_id,))
                 result = cursor.fetchone()
                 if result:
                     r["username"] = result[0]
-                cursor.close()
-                conn.close()
-        except:
-            pass
+        except Exception as e:
+            logging.warning(f"Error fetching username for user_id={user_id}: {e}")
 
         review_list.append(r)
 
+    cursor.close()
     return review_list
 
 
@@ -87,7 +89,7 @@ def delete_review(review_id):
     except Exception:
         return None
 
-
+@log_duration("get_aggregate_rating_for_work")
 def get_aggregate_rating_for_work(list_of_isbns: list):
     """
     Performs a single, efficient aggregation to get the total rating sum and

@@ -5,6 +5,7 @@ import mysql.connector
 from isbnlib import to_isbn13, is_isbn10, is_isbn13
 
 from nosql_service import get_aggregate_rating_for_work
+from utils import log_duration
 
 
 def get_db_connection():
@@ -133,7 +134,7 @@ def fetch_top_genres():
     conn.close()
     return genres
 
-
+@log_duration("fetch_books_from_db(sql)")
 def fetch_books_from_db(query=None, field="title", genres=None, year_from=None, year_to=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -203,9 +204,8 @@ def fetch_books_from_db(query=None, field="title", genres=None, year_from=None, 
     conn.close()
     return books
 
-
-def fetch_book_details(work_id):
-    conn = get_db_connection()
+@log_duration("fetch_book_details(sql)")
+def fetch_book_details(work_id, conn):
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
@@ -225,7 +225,6 @@ def fetch_book_details(work_id):
 
     book = cursor.fetchone()
     cursor.close()
-    conn.close()
     if book and book.get("author_ids"):
         book["author_ids"] = [int(aid) for aid in book["author_ids"].split(",") if aid]
     else:
@@ -244,11 +243,10 @@ def fetch_user_from_db(username):
     return user
 
 
-def fetch_top_books_by_authors(author_ids, limit=4, work_id=None):
+def fetch_top_books_by_authors(conn, author_ids, limit=4, work_id=None):
     """
     Returns a list of the top books (by avg_rating DESC, then title ASC) for a list of author_ids.
     """
-    conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     placeholders = ','.join(['%s'] * len(author_ids))
     sql = f'''
@@ -271,14 +269,14 @@ def fetch_top_books_by_authors(author_ids, limit=4, work_id=None):
     cursor.execute(sql, params)
     books = cursor.fetchall()
     cursor.close()
-    conn.close()
+
     return books
 
-def fetch_editions_for_work(work_id):
+
+def fetch_editions_for_work(work_id, conn):
     """
     Returns a list of all editions for a given work_id, including isbn13, isbn10, publisher_name, and publish_year.
     """
-    conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT isbn13, isbn10, publisher_name, publish_year
@@ -288,5 +286,5 @@ def fetch_editions_for_work(work_id):
     """, (work_id,))
     editions = cursor.fetchall()
     cursor.close()
-    conn.close()
+
     return editions
