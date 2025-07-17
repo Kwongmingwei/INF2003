@@ -1,12 +1,8 @@
 # Flask and web framework dependencies
 Flask
 
-# Database dependencies
+# SQL dependencies
 mysql-connector-python
-
-# SQLAlchemy (for improved implementation)
-SQLAlchemy
-PyMySQL  # Pure Python MySQL driver for SQLAlchemy
 
 # MongoDB dependencies
 pymongo
