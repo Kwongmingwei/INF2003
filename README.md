@@ -45,7 +45,7 @@ A web application for book reviews and ratings using Flask, MariaDB (SQL), and M
 3. Set up MongoDB (NoSQL) database
    - Start MongoDB and import initial data using mongorestore:
      - Ensure MongoDB is running.
-     - Import the reviews dataset: `mongorestore --db reviews_db no_sql_db/reviews_db/`
+     - Import the reviews dataset: `mongorestore --drop --db=reviews_db no_sql_db/reviews_db_dump/reviews_db`
 
 4. Configure connection settings
    - Edit connection details in `sql_service.py` and `nosql_service.py` as needed.
