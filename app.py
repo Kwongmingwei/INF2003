@@ -1,12 +1,13 @@
 from datetime import date, timedelta
 
 import click
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from tqdm import tqdm
 
 from nosql_service import *
 from sql_service import *
 from sql_service import _calculate_and_stage_update
+from utils import log_duration
 
 app = Flask(__name__)
 app.secret_key = 'KEY'
@@ -43,20 +44,24 @@ def index():
 
 
 @app.route('/book/<int:book_id>')
+@log_duration("/book/<book_id>")
 def book_detail(book_id):
-    book = fetch_book_details(book_id)
+    conn = get_db_connection()
+
+    book = fetch_book_details(book_id, conn)
     author_ids = book.get("author_ids", [])
     author_books = []
     if author_ids:
-        author_books = fetch_top_books_by_authors(author_ids, limit=4, work_id=book_id)
+        author_books = fetch_top_books_by_authors(conn, author_ids, limit=4, work_id=book_id)
     if not book:
         return "Book not found", 404
     
-    editions = fetch_editions_for_work(book_id)
-    
+    editions = fetch_editions_for_work(book_id, conn)
 
     isbn13 = book.get("isbn13")
-    book_reviews = get_reviews_by_isbn(isbn13) if isbn13 else []
+    book_reviews = get_reviews_by_isbn(isbn13, conn) if isbn13 else []
+
+    conn.close()
 
     return render_template("book_detail.html", book=book, book_id=book_id, reviews=book_reviews,
                            author_books=author_books,editions=editions)
@@ -71,6 +76,8 @@ def format_datetime(value):
 
 @app.route('/book/<int:book_id>/review', methods=['POST'])
 def submit_review(book_id):
+    conn = get_db_connection()
+
     if 'user_id' not in session:
         return "Unauthorized", 401
 
@@ -79,7 +86,7 @@ def submit_review(book_id):
     rating = int(request.form['rating'])
     user_id = session['user_id']
 
-    book = fetch_book_details(book_id)
+    book = fetch_book_details(book_id, conn)
     isbn13 = book.get("isbn13")
 
     if not isbn13:
@@ -102,6 +109,7 @@ def submit_review(book_id):
     if work_id:
         update_work_rating(work_id)
 
+    conn.close()
     return redirect(url_for('book_detail', book_id=book_id))
 
 
@@ -166,6 +174,7 @@ def logout():
 
 
 @app.route('/search')
+@log_duration("/search")
 def search():
     query = request.args.get("query", "").strip()
     field = request.args.get("searchDropdown", "title")
